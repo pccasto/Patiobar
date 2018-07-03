@@ -7,6 +7,7 @@
 		<title>Patiobar</title>
 		<link rel="stylesheet" href="/css/bootstrap.min.css">
 		<link rel="stylesheet" href="/css/main.css">
+		<link rel="icon" type="image/ico" href="/images/favicon.ico">
 	</head>
 	<body>
 		<nav class="navbar navbar-inverse" role="navigation" ng-controller="StationController">
@@ -20,10 +21,10 @@
 					</button>
 					<p class="navbar-brand"><a href="https://github.com/kylejohnson/Patiobar">Patiobar</a></p>
 				</div><!-- End navbar-header -->
-	
+
 				<div class="text-center collapse navbar-collapse" id="stations">
 					<button type="button" ng-repeat="station in stations" class="btn btn-default navbar-btn btn-sm" ng-click="changeStation(station.id);" ng-class="{'btn-success': stationName == station.name}">{{station.name}}</button>
-				</div> 
+				</div>
 			</div> <!-- End container-fluid -->
 		</nav>
 
@@ -31,16 +32,16 @@
 			<div id="player" class="center-block">
 				<div class="text-center">
 					<img class="center-block img-rounded img-responsive" id="coverArt" ng-src="{{src}}" alt="{{alt}}">
-	
+
 					<div id="details">
 						<p id="title" class="media-heading">{{title}}</p>
 						<p id="albumartist">{{albumartist}}</p>
 					</div>
-	
-	     		<div id="controls">
+
+		 		<div id="controls">
 						<button type="button" id="love" class="pull-left btn btn-default" ng-click="sendCommand('+');"> <span class="glyphicon glyphicon-thumbs-up"></span> </button>
-						<button id="pauseplay" type="button" class="btn btn-default" ng-click="sendCommand('p');"> <span class="glyphicon glyphicon-pause"></span> </button>
-						<button type="button" class="btn btn-default" ng-click="sendCommand('n');"> <span class="glyphicon glyphicon-fast-forward"></span> </button> 
+						<button id="pauseplay" type="button" class="btn btn-default" ng-controller="SongController"ng-click="togglePausePlay()"> <span id="pauseplayICON" class="glyphicon glyphicon-pause"> </span> </button>
+						<button type="button" class="btn btn-default" ng-click="sendCommand('n');"> <span class="glyphicon glyphicon-fast-forward"></span> </button>
 						<button type="button" class="btn btn-default" ng-click="sendCommand('(');"> <span class="glyphicon glyphicon-volume-down"></span> </button>
 						<button type="button" class="btn btn-default" ng-click="sendCommand(')');"> <span class="glyphicon glyphicon-volume-up"></span> </button>
 						<button type="button" title="Tired (shelve for a month)" class="btn btn-default" ng-click="sendCommand('t');"> <span class="glyphicon glyphicon-calendar"></span> </button>
@@ -50,15 +51,15 @@
 			</div> <!-- End Player -->
 		</div> <!-- End container (SongController) -->
 
-                <div class="container" ng-controller="ProcessController">
-                        <div class="container-fluid center-block">
-                                <div id="process">
-                                        <button type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('start')"> <span class="glyphicon glyphicon-play"></span> </button>
-                                        <button id="stop" type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('stop')"> <span class="glyphicon glyphicon-stop"></span> </button>
-                                </div>
-                        </div> <!-- End container-fluid -->
-                </div> <!-- End container (Process Controller) -->
- 
+				<div class="container" ng-controller="ProcessController">
+						<div class="container-fluid center-block">
+								<div id="process">
+										<button type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('start')"> <span class="glyphicon glyphicon-play"></span> </button>
+										<button id="stop" type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('stop')"> <span class="glyphicon glyphicon-stop"></span> </button>
+								</div>
+						</div> <!-- End container-fluid -->
+				</div> <!-- End container (Process Controller) -->
+
 		<script src="/socket.io/socket.io.js"></script>
 		<script src="/js/jquery-2.1.1.min.js"></script>
 		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.22/angular.min.js"></script>
