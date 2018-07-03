@@ -24,6 +24,14 @@ app.factory('socket', function ($rootScope) {
   };
 });
 
+function ProcessController($scope, socket) {
+        $scope.process = function(action) {
+             socket.emit('process', { action: action });
+        }
+	$("#stop").click(function() {
+		$(this).children().toggleClass('glyphicon-pause glyphicon-play');
+	});
+}
 
 function StationController($scope, socket) {
 	socket.on('stations', function(msg) {
@@ -39,16 +47,19 @@ function StationController($scope, socket) {
 		}
 
 		$scope.stations = s;
+                document.getElementById("stations").className = "";
 	});
 
-	socket.on('start', function(msg) {
-                var stationName = msg.stationName.substr(0, msg.stationName.length - 6);
-		$scope.stationName = stationName;
-        });
+// factory created two 'start' handlers - perhaps better to combine them
+//	socket.on('start', function(msg) {
+//                var stationName = msg.stationName.substr(0, msg.stationName.length - 6);
+//		$scope.stationName = stationName;
+//        });
 
 	$scope.changeStation = function(stationId) {
 		socket.emit('changeStation', { stationId: stationId });
 	}
+        document.getElementById("controls").className = "";
 }
 
 function SongController($scope, socket) {
@@ -66,7 +77,21 @@ function SongController($scope, socket) {
 			document.getElementById("love").className = "btn btn-default pull-left";
 
 		}
+// combinining into one start handler
+var stationName = msg.stationName.substr(0, msg.stationName.length - 6);
+$scope.stationName = stationName;
 	});
+
+        socket.on('stop', function(msg) {
+                var aa = 'pianobar turned off. click the play key to start';
+                $scope.albumartist = aa;
+                $scope.src = msg.coverArt;
+                $scope.alt = 'pianobar off';
+                $scope.title = msg.title;
+                $scope.rating = msg.rating;
+                document.getElementById("controls").className = "hidden-controls";
+                document.getElementById("stations").className = "hidden-controls";
+        });
 
 	$scope.sendCommand = function(action) {
 		socket.emit('action', { action: action });

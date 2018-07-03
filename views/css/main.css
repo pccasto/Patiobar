@@ -6,6 +6,10 @@ body {
 #controls {
 }
 
+.hidden-controls {
+	display: none;
+}
+
 #details {
 	margin:10px 0;
 	padding:0 40px;
