@@ -1,5 +1,7 @@
 var app = angular.module('patiobarApp', []);
 
+
+
 app.factory('socket', function ($rootScope) {
   var socket = io.connect();
   return {
@@ -25,12 +27,13 @@ app.factory('socket', function ($rootScope) {
 });
 
 function ProcessController($scope, socket) {
-		$scope.process = function(action) {
-			 socket.emit('process', { action: action });
-		}
-	$("#stop").click(function() {
-		$(this).children().toggleClass('glyphicon-pause glyphicon-play');
-	});
+	$scope.process = function(action) {
+		socket.emit('process', { action: action });
+	}
+// not much point in this if these controls will be hidden
+//	$("#stop").click(function() {
+//		$(this).children().toggleClass('glyphicon-pause glyphicon-play');
+//	});
 }
 
 function StationController($scope, socket) {
@@ -47,23 +50,30 @@ function StationController($scope, socket) {
 		}
 
 		$scope.stations = s;
-		document.getElementById("stations").className = "";
+		//document.getElementById("stations").className = "";
 	});
 
 	socket.on('start', function(msg) {
 		// in case msg arrives without stationName set
+		$scope.pianobarPlaying = true;
 		try {
 			var stationName = msg.stationName.substr(0, msg.stationName.length - 6);
 			$scope.stationName = stationName;
 		}
 		catch (err) {
 		}
+//		document.getElementById("station-wrapper").classList.remove('hidden-controls');
+	});
+
+	socket.on('stop', function(msg) {
+		$scope.stationName = "";
+		$scope.pianobarPlaying = false;
+//		document.getElementById("station-wrapper").classList.add('hidden-controls');
 	});
 
 	$scope.changeStation = function(stationId) {
 		socket.emit('changeStation', { stationId: stationId });
 	}
-	document.getElementById("controls").className = "";
 }
 
 function SongController($scope, socket) {
@@ -75,8 +85,8 @@ function SongController($scope, socket) {
 		$scope.alt = msg.album;
 		$scope.title = msg.title;
 		$scope.rating = msg.rating;
-		$scope.playing = msg.isplaying;
-		alert($scope.playing);
+		$scope.pianobarPlaying = msg.isplaying;
+		//alert($scope.pianobarPlaying);
 		$scope.setPausePlayDisplay();
 
 		if (msg.rating == 1) {
@@ -84,17 +94,23 @@ function SongController($scope, socket) {
 		} else {
 			document.getElementById("love").className = "btn btn-default pull-left";
 		}
+	    //document.getElementById("controls").className = 'visible-controls';
+//	    document.getElementById("controls").classList.remove('hidden-controls');
 	});
 
 	socket.on('stop', function(msg) {
-		$scope.playing = false;
+		$scope.pianobarPlaying = false;
 		var aa = 'pianobar turned off. click the play key to start';
 		$scope.albumartist = aa;
 		$scope.src = msg.coverArt;
 		$scope.alt = 'pianobar off';
 		$scope.title = msg.title;
 		$scope.rating = msg.rating;
-		document.getElementById("controls").className = "hidden-controls";
+		//document.getElementById("controls").className = "hidden-controls";
+	    //document.getElementById("controls").className = 'hidden-controls';
+//	    document.getElementById("controls").classList.add('hidden-controls');
+
+		//document.getElementById("controls").toggleClass('hidden-controls visible-controls');;
 		//document.getElementById("stations").className = "hidden-controls";
 	});
 
@@ -102,13 +118,13 @@ function SongController($scope, socket) {
 		var action = msg.action;
 		switch(action) {
 		case 'P':
-			alert('P - should start now');
-			$scope.playing = true;
+			//alert('P - should start now');
+			$scope.pianobarPlaying = true;
 			$scope.setPausePlayDisplay();
 			break;
 		case 'S':
-			alert('S - should stop now');
-			$scope.playing = false;
+			//alert('S - should stop now');
+			$scope.pianobarPlaying = false;
 			$scope.setPausePlayDisplay();
 			break;
 		default:
@@ -116,6 +132,10 @@ function SongController($scope, socket) {
 			// shouldn't care about other messages, but if we do, add handlers
 			break;
 		}
+	socket.on( 'disconnect', function () {
+    alert( 'disconnected from server' );
+    window.setTimeout( 'app.connect()', 5000 );
+  } );
 
 		//$(this).children().toggleClass('glyphicon-pause glyphicon-play');
 		//$("#pauseplay").click();
@@ -126,16 +146,16 @@ function SongController($scope, socket) {
 	}
 
 //	$scope.togglePausePlay = function(pauseplay) {
-//	  $scope.playing = false;
+//	  $scope.pianobarPlaying = false;
 //	  $scope.pauseplayButton = $scope.subscribed ? 'Unsubscribe' : 'Subscribe';
 	$scope.togglePausePlay= function() {
-		$scope.playing ? $scope.sendCommand('S') : $scope.sendCommand('P');
-		$scope.playing = !$scope.playing;
+		$scope.pianobarPlaying ? $scope.sendCommand('S') : $scope.sendCommand('P');
+		$scope.pianobarPlaying = !$scope.pianobarPlaying;
 		$scope.setPausePlayDisplay()
 	};
 
 	$scope.setPausePlayDisplay= function() {
-		if ($scope.playing) {
+		if ($scope.pianobarPlaying) {
 			document.getElementById('pauseplayICON').className = 'glyphicon glyphicon-pause';
 		} else {
 			//document.querySelector('#pauseplay span').className = 'glyphicon glyphicon-play';

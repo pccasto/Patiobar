@@ -22,8 +22,12 @@
 					<p class="navbar-brand"><a href="https://github.com/kylejohnson/Patiobar">Patiobar</a></p>
 				</div><!-- End navbar-header -->
 
-				<div class="text-center collapse navbar-collapse" id="stations">
-					<button type="button" ng-repeat="station in stations" class="btn btn-default navbar-btn btn-sm" ng-click="changeStation(station.id);" ng-class="{'btn-success': stationName == station.name}">{{station.name}}</button>
+<!--				<div id="station-wrapper" class="ng-class: false || 'hidden-controls'"> 
+ ng-class="hidden-control"> -->
+<div id="station-wrapper" ng-class="{ true: 'visible', false: 'hidden-controlsx' }[pianobarPlaying]">
+					<div class="text-center collapse navbar-collapse" id="stations">
+						<button type="button" ng-repeat="station in stations" class="btn btn-default navbar-btn btn-sm" ng-click="stationName == station.name || changeStation(station.id);" ng-class="{'btn-success': stationName == station.name}">{{station.name}}</button>
+					</div>
 				</div>
 			</div> <!-- End container-fluid -->
 		</nav>
@@ -38,9 +42,9 @@
 						<p id="albumartist">{{albumartist}}</p>
 					</div>
 
-		 		<div id="controls">
+		 			<div id="controls" class="hidden-control">
 						<button type="button" id="love" class="pull-left btn btn-default" ng-click="sendCommand('+');"> <span class="glyphicon glyphicon-thumbs-up"></span> </button>
-						<button id="pauseplay" type="button" class="btn btn-default" ng-controller="SongController"ng-click="togglePausePlay()"> <span id="pauseplayICON" class="glyphicon glyphicon-pause"> </span> </button>
+						<button id="pauseplay" type="button" class="btn btn-default" ng-click="togglePausePlay()"> <span id="pauseplayICON" class="glyphicon glyphicon-pause"> </span> </button>
 						<button type="button" class="btn btn-default" ng-click="sendCommand('n');"> <span class="glyphicon glyphicon-fast-forward"></span> </button>
 						<button type="button" class="btn btn-default" ng-click="sendCommand('(');"> <span class="glyphicon glyphicon-volume-down"></span> </button>
 						<button type="button" class="btn btn-default" ng-click="sendCommand(')');"> <span class="glyphicon glyphicon-volume-up"></span> </button>
@@ -51,18 +55,18 @@
 			</div> <!-- End Player -->
 		</div> <!-- End container (SongController) -->
 
-				<div class="container" ng-controller="ProcessController">
-						<div class="container-fluid center-block">
-								<div id="process">
-										<button type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('start')"> <span class="glyphicon glyphicon-play"></span> </button>
-										<button id="stop" type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('stop')"> <span class="glyphicon glyphicon-stop"></span> </button>
-								</div>
-						</div> <!-- End container-fluid -->
-				</div> <!-- End container (Process Controller) -->
+		<div class="container" ng-controller="ProcessController">
+			<div class="container-fluid center-block">
+				<div id="process">
+					<button type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('start')"> <span class="glyphicon glyphicon-play"></span> </button>
+					<button id="stop" type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('stop')"> <span class="glyphicon glyphicon-stop"></span> </button>
+				</div>
+			</div> <!-- End container-fluid -->
+		</div> <!-- End container (Process Controller) -->
 
 		<script src="/socket.io/socket.io.js"></script>
 		<script src="/js/jquery-2.1.1.min.js"></script>
-		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.22/angular.min.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.2/angular.min.js"></script>
 		<script src="/js/bootstrap.min.js"></script>
 		<script src="/js/main.js"></script>
 	</body>
