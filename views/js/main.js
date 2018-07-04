@@ -30,10 +30,6 @@ function ProcessController($scope, socket) {
 	$scope.process = function(action) {
 		socket.emit('process', { action: action });
 	}
-// not much point in this if these controls will be hidden
-//	$("#stop").click(function() {
-//		$(this).children().toggleClass('glyphicon-pause glyphicon-play');
-//	});
 }
 
 function StationController($scope, socket) {
@@ -62,13 +58,11 @@ function StationController($scope, socket) {
 		}
 		catch (err) {
 		}
-//		document.getElementById("station-wrapper").classList.remove('hidden-controls');
 	});
 
 	socket.on('stop', function(msg) {
 		$scope.stationName = "";
 		$scope.pianobarPlaying = false;
-//		document.getElementById("station-wrapper").classList.add('hidden-controls');
 	});
 
 	$scope.changeStation = function(stationId) {
@@ -94,8 +88,6 @@ function SongController($scope, socket) {
 		} else {
 			document.getElementById("love").className = "btn btn-default pull-left";
 		}
-	    //document.getElementById("controls").className = 'visible-controls';
-//	    document.getElementById("controls").classList.remove('hidden-controls');
 	});
 
 	socket.on('stop', function(msg) {
@@ -106,12 +98,6 @@ function SongController($scope, socket) {
 		$scope.alt = 'pianobar off';
 		$scope.title = msg.title;
 		$scope.rating = msg.rating;
-		//document.getElementById("controls").className = "hidden-controls";
-	    //document.getElementById("controls").className = 'hidden-controls';
-//	    document.getElementById("controls").classList.add('hidden-controls');
-
-		//document.getElementById("controls").toggleClass('hidden-controls visible-controls');;
-		//document.getElementById("stations").className = "hidden-controls";
 	});
 
 	socket.on('action', function(msg) {
@@ -132,22 +118,17 @@ function SongController($scope, socket) {
 			// shouldn't care about other messages, but if we do, add handlers
 			break;
 		}
-	socket.on( 'disconnect', function () {
-    alert( 'disconnected from server' );
-    window.setTimeout( 'app.connect()', 5000 );
-  } );
+	});
 
-		//$(this).children().toggleClass('glyphicon-pause glyphicon-play');
-		//$("#pauseplay").click();
+	socket.on( 'disconnect', function () {
+	    alert( 'disconnected from server' );
+	    window.setTimeout( 'app.connect()', 5000 );
 	});
 
 	$scope.sendCommand = function(action) {
 		socket.emit('action', { action: action });
 	}
 
-//	$scope.togglePausePlay = function(pauseplay) {
-//	  $scope.pianobarPlaying = false;
-//	  $scope.pauseplayButton = $scope.subscribed ? 'Unsubscribe' : 'Subscribe';
 	$scope.togglePausePlay= function() {
 		$scope.pianobarPlaying ? $scope.sendCommand('S') : $scope.sendCommand('P');
 		$scope.pianobarPlaying = !$scope.pianobarPlaying;
@@ -163,18 +144,10 @@ function SongController($scope, socket) {
 		}
 	};
 
-
-
-//	$("#pauseplay").click(function() {
-//		$(this).children().toggleClass('glyphicon-pause glyphicon-play');
-		//$(this).children().ng-click="sendCommand('P');
-//	});
-
 	socket.on('lovehate', function(msg) {
 		if (msg.rating == 1) {
 			document.getElementById("love").className = "btn btn-success pull-left";
 		}
 	});
-
 
 }

@@ -22,9 +22,7 @@
 					<p class="navbar-brand"><a href="https://github.com/kylejohnson/Patiobar">Patiobar</a></p>
 				</div><!-- End navbar-header -->
 
-<!--				<div id="station-wrapper" class="ng-class: false || 'hidden-controls'"> 
- ng-class="hidden-control"> -->
-<div id="station-wrapper" ng-class="{ true: 'visible', false: 'hidden-controlsx' }[pianobarPlaying]">
+				<div id="station-wrapper" ng-class="{'hidden-controls': !pianobarPlaying}">
 					<div class="text-center collapse navbar-collapse" id="stations">
 						<button type="button" ng-repeat="station in stations" class="btn btn-default navbar-btn btn-sm" ng-click="stationName == station.name || changeStation(station.id);" ng-class="{'btn-success': stationName == station.name}">{{station.name}}</button>
 					</div>
@@ -42,7 +40,7 @@
 						<p id="albumartist">{{albumartist}}</p>
 					</div>
 
-		 			<div id="controls" class="hidden-control">
+		 			<div id="controls" ng-class="{'hidden-controls': !pianobarPlaying}">
 						<button type="button" id="love" class="pull-left btn btn-default" ng-click="sendCommand('+');"> <span class="glyphicon glyphicon-thumbs-up"></span> </button>
 						<button id="pauseplay" type="button" class="btn btn-default" ng-click="togglePausePlay()"> <span id="pauseplayICON" class="glyphicon glyphicon-pause"> </span> </button>
 						<button type="button" class="btn btn-default" ng-click="sendCommand('n');"> <span class="glyphicon glyphicon-fast-forward"></span> </button>
