@@ -1,18 +1,21 @@
-var express = require('express');
-var app = require('express')();
-var server = require('http').createServer(app);
-var io = require('socket.io')(server);
-var fs = require('fs');
+"use strict";
 
-var fifo = process.env.PIANOBAR_FIFO || 'ctl';
-var listenPort = process.env.PATIOBAR_PORT || 3000;
+const
+	express = require('express'),
+	app = require('express')(),
+	server = require('http').createServer(app),
+	io = require('socket.io')(server),
+	fs = require('fs'),
+    fifo = process.env.PIANOBAR_FIFO || 'ctl',
+    listenPort = process.env.PATIOBAR_PORT || 3000,
+    pianobarStart = process.env.PIANOBAR_START || process.env.HOME + '/Patiobar/patiobar.sh start',
+    pianobarStop  = process.env.PIANOBAR_STOP  || process.env.HOME + '/Patiobar/patiobar.sh stop-pianobar',
+    pianobarOffImageURL = '../On_Off.png';    
 
-var pianobarStart = process.env.PIANOBAR_START || process.env.HOME + '/Patiobar/patiobar.sh start';
-var pianobarStop  = process.env.PIANOBAR_STOP  || process.env.HOME + '/Patiobar/patiobar.sh stop-pianobar';
-var pianobarPlaying = false;
+// assume playing as the default state when patiobar starts
+var pianobarPlaying = true;
 
 app.use(express.static('views/images'));
-var pianobarOffImageURL = '../On_Off.png';
 
 server.listen(listenPort);
 
@@ -33,16 +36,34 @@ function readCurrentSong() {
 	}
 }
 
+
+const child_process = require("child_process")
+function systemSync(cmd){
+  child_process.exec(cmd, (err, stdout, stderr) => {
+    console.log('stdout is:' + stdout)
+    console.log('stderr is:' + stderr)
+    console.log('error is:' + err)
+  }).on('exit', code => console.log('final exit code is', code))
+}
+
 function ProcessCTL(action) {
 	switch(action) {
 	  case 'start':
 		console.log('Starting Pianobar');
 		try {
-		  require('child_process').execSync("cat", [fifo]); //clear old buffer
-		  console.log('Buffer should be cleared');
-		  require('child_process').execSync(pianobarStart);
-		  console.log('Pianobar process should have started');
-		  pianobarPlaying = true;
+//			child_process.execSync("cat", [fifo]); //clear old buffer
+systemSync("dd if=" + fifo + " iflag=nonblock of=/dev/null")
+
+			console.log('Buffer should be cleared');
+			try {
+// add logic to verify process started
+		  		systemSync(pianobarStart);
+		  	}
+		  	catch(err) {
+				console.log(err);
+			}
+			console.log('Pianobar process should have started');
+			pianobarPlaying = true;
 		}
 		catch (err) {
 		  console.log('Error in starting Pianobar: ' + err.message);
@@ -53,19 +74,20 @@ function ProcessCTL(action) {
 	  case 'stop':
 		console.log('Stopping Pianobar');
 		try {
-		  require('child_process').execSync("cat", [fifo]); //clear old buffer
-			  console.log('Buffer should be cleared');
-		  PidoraCTL('q');
-		  pianobarPlaying = false;
-		  io.emit('stop', { artist: '', title: '', album: '', coverArt: pianobarOffImageURL, rating: '', stationName: '', isplaying: false	});
-		  fs.writeFile(process.env.HOME + '/.config/pianobar/currentSong', 'PIANOBAR_STOPPED,,,,', function (err) {
+			///child_process.execSync("cat", [fifo]); //clear old buffer
+			systemSync("dd if=" + fifo + " iflag=nonblock of=/dev/null")
+			console.log('Buffer should be cleared');
+			PidoraCTL('q');
+			pianobarPlaying = false;
+			io.emit('stop', { artist: '', title: '', album: '', coverArt: pianobarOffImageURL, rating: '', stationName: '', isplaying: false	});
+			fs.writeFile(process.env.HOME + '/.config/pianobar/currentSong', 'PIANOBAR_STOPPED,,,,', function (err) {
 			if (err) return console.log(err);
-			console.log('Stop entry made in currentSong file!');
-		  });
+				console.log('Stop entry made in currentSong file!');
+			});
 		}
 		catch (err) {
-		  console.log('Error in stopping Pianobar: ' + err.message);
-		  return;
+			console.log('Error in stopping Pianobar: ' + err.message);
+			return;
 		}
 		break;
 
@@ -77,7 +99,7 @@ function ProcessCTL(action) {
 
 
 function PidoraCTL(action) {
-	fs.open(fifo, 'w', 0644, function(error, fd) {
+	fs.open(fifo, 'w', '0644', function(error, fd) {
 	  if (error) {
 		if (fd) {
 		  fs.close(fd);
@@ -86,7 +108,7 @@ function PidoraCTL(action) {
 		return;
 	  }
 
-	  buf = new Buffer.from(action);
+	  var buf = new Buffer.from(action);
 	  fs.write(fd, buf, 0, action.length, null, function(error, written, buffer) {
 		if (fd) {
 		  fs.close(fd, function(err) {
@@ -117,17 +139,28 @@ function readStations() {
 //}
 
 io.on('connection', function(socket) {
-	console.log('a user connected from: ' + socket.request.connection.remoteAddress);
+	try {
+		var user_ip = socket.request.connection.remoteAddress;
+		console.log('a user connected from: ' + user_ip);
+		}
+	catch (err) {
+		console.log('a user connected ' + err);
+	}
+	
+	socket.flush;
+	
 	//readPlayingStatus();
 	readCurrentSong();
 	readStations();
 
+
 	socket.on('disconnect', function(){
 		try {
-		  console.log('a user disconnected from:' + socket.request.connection.remoteAddress);
+			var user_address = socket.request.connection.remoteHost || socket.request.connection.remoteAddress
+			console.log('a user disconnected from:' + user_address);
 		}
 		catch (err) {
-		  console.log('a user disconnected');
+			console.log('a user disconnected');
 		}
 	});
 
@@ -150,12 +183,12 @@ io.on('connection', function(socket) {
 	});
 
 	app.post('/start', function(request, response){
-		artist = request.query.artist;
-		title = request.query.title;
-		album = request.query.album;
-		coverArt = request.query.coverArt;
-		rating = request.query.rating;
-		stationName = request.query.stationName;
+		var artist = request.query.artist;
+		var title = request.query.title;
+		var album = request.query.album;
+		var coverArt = request.query.coverArt;
+		var rating = request.query.rating;
+		var stationName = request.query.stationName;
 		readStations();
 		io.emit('start', { artist: artist, title: title, coverArt: coverArt, album: album, rating: rating, stationName: stationName, isplaying: pianobarPlaying });
 		response.send(request.query);
@@ -163,7 +196,7 @@ io.on('connection', function(socket) {
 	});
 
 	app.post('/lovehate', function(request, response) {
-		rating = request.query.rating;
+		var rating = request.query.rating;
 
 		io.emit('lovehate', { rating: rating });
 	});

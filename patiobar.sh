@@ -10,6 +10,16 @@ case "$1" in
         popd > /dev/null
         exit "$EXITSTATUS"
         ;;
+  test)
+        EXITSTATUS=0
+        pushd . > /dev/null
+        cd ~pi
+        [[ 1 -eq $(screen -list | grep -c pianobar) ]] || screen -S pianobar -d -m pianobar
+        cd Patiobar
+        [[ 1 -eq $(screen -list | grep -c patiobar) ]] ||  nodejs index.js
+        popd > /dev/null
+        exit "$EXITSTATUS"
+        ;;
   stop)
         EXITSTATUS=0
         pkill -f "SCREEN -S pianobar"
