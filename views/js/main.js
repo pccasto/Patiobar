@@ -1,6 +1,5 @@
+"use strict";
 var app = angular.module('patiobarApp', []);
-
-
 
 app.factory('socket', function ($rootScope) {
   var socket = io.connect();
@@ -37,7 +36,7 @@ function StationController($scope, socket) {
 		msg.stations.pop();
 		var s = [];
 
-		for (i in msg.stations) {
+		for (var i in msg.stations) {
 			var array = msg.stations[i].split(":");
 			var id = array[0];
 			var name = array[1].replace(" Radio", "");
@@ -46,7 +45,6 @@ function StationController($scope, socket) {
 		}
 
 		$scope.stations = s;
-		//document.getElementById("stations").className = "";
 	});
 
 	socket.on('start', function(msg) {
@@ -57,6 +55,7 @@ function StationController($scope, socket) {
 			$scope.stationName = stationName;
 		}
 		catch (err) {
+			$scope.stationName = 'Unknown station';
 		}
 	});
 
@@ -72,7 +71,6 @@ function StationController($scope, socket) {
 
 function SongController($scope, socket) {
 	socket.on('start', function(msg) {
-		document.getElementById("controls").className = "";
 		var aa = 'on ' + msg.album + ' by ' + msg.artist;
 		$scope.albumartist = aa;
 		$scope.src = msg.coverArt;
@@ -81,8 +79,8 @@ function SongController($scope, socket) {
 		$scope.rating = msg.rating;
 		$scope.pianobarPlaying = msg.isplaying;
 		//alert($scope.pianobarPlaying);
-		$scope.setPausePlayDisplay();
 
+// this can be changed to an angular ng-class
 		if (msg.rating == 1) {
 			document.getElementById("love").className = "btn btn-success pull-left";
 		} else {
@@ -106,12 +104,10 @@ function SongController($scope, socket) {
 		case 'P':
 			//alert('P - should start now');
 			$scope.pianobarPlaying = true;
-			$scope.setPausePlayDisplay();
 			break;
 		case 'S':
 			//alert('S - should stop now');
 			$scope.pianobarPlaying = false;
-			$scope.setPausePlayDisplay();
 			break;
 		default:
 			//alert('unknown action: ' + action);
@@ -132,18 +128,9 @@ function SongController($scope, socket) {
 	$scope.togglePausePlay= function() {
 		$scope.pianobarPlaying ? $scope.sendCommand('S') : $scope.sendCommand('P');
 		$scope.pianobarPlaying = !$scope.pianobarPlaying;
-		$scope.setPausePlayDisplay()
 	};
 
-	$scope.setPausePlayDisplay= function() {
-		if ($scope.pianobarPlaying) {
-			document.getElementById('pauseplayICON').className = 'glyphicon glyphicon-pause';
-		} else {
-			//document.querySelector('#pauseplay span').className = 'glyphicon glyphicon-play';
-			document.getElementById('pauseplayICON').className = 'glyphicon glyphicon-play';
-		}
-	};
-
+// this can be changed to an angular ng-class
 	socket.on('lovehate', function(msg) {
 		if (msg.rating == 1) {
 			document.getElementById("love").className = "btn btn-success pull-left";

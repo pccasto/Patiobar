@@ -40,9 +40,9 @@
 						<p id="albumartist">{{albumartist}}</p>
 					</div>
 
-		 			<div id="controls" ng-class="{'hidden-controls': !pianobarPlaying}">
+					<div id="controls">
 						<button type="button" id="love" class="pull-left btn btn-default" ng-click="sendCommand('+');"> <span class="glyphicon glyphicon-thumbs-up"></span> </button>
-						<button id="pauseplay" type="button" class="btn btn-default" ng-click="togglePausePlay()"> <span id="pauseplayICON" class="glyphicon glyphicon-pause"> </span> </button>
+						<button id="pauseplay" type="button" class="btn btn-default" ng-click="togglePausePlay()"> <span id="pauseplayICON" ng-class="pianobarPlaying ? 'glyphicon glyphicon-pause' : 'glyphicon glyphicon-play'"> </span> </button>
 						<button type="button" class="btn btn-default" ng-click="sendCommand('n');"> <span class="glyphicon glyphicon-fast-forward"></span> </button>
 						<button type="button" class="btn btn-default" ng-click="sendCommand('(');"> <span class="glyphicon glyphicon-volume-down"></span> </button>
 						<button type="button" class="btn btn-default" ng-click="sendCommand(')');"> <span class="glyphicon glyphicon-volume-up"></span> </button>
@@ -56,8 +56,9 @@
 		<div class="container" ng-controller="ProcessController">
 			<div class="container-fluid center-block">
 				<div id="process">
-					<button type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('start')"> <span class="glyphicon glyphicon-play"></span> </button>
-					<button id="stop" type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('stop')"> <span class="glyphicon glyphicon-stop"></span> </button>
+					<span>Music server control:</span>
+					<button id="process-start" type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('start')"> <span class="glyphicon glyphicon-play"></span> </button>
+					<button id="process-stop"  type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('stop')">  <span class="glyphicon glyphicon-stop"></span> </button>
 				</div>
 			</div> <!-- End container-fluid -->
 		</div> <!-- End container (Process Controller) -->

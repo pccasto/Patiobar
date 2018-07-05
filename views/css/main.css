@@ -40,3 +40,8 @@ body {
  margin-left: 1px;
  margin-right: 1px;
 }
+
+#process {
+	color: orange;
+	font-size:130%;
+}
