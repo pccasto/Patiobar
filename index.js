@@ -1,13 +1,11 @@
 "use strict";
 
 // TODO - real logging framework...
+// TODO - log user_id of command senders
+
+
 // add timestamps in front of log messages
 require('console-stamp')(console, '[HH:MM:ss.l]');
-var util = require('util');
-console.log = function log()
-{
-   fs.writeSync(this._stdout.fd, util.format.apply(null,arguments) + "\n");
-}
 
 const
 	express = require('express'),
@@ -182,16 +180,17 @@ function readStations() {
 var socketlist = [];
 
 io.on('connection', function(socket) {
+	// remotePort is often Wrong (or at least was with old library) -- but
 	var user_id = socket.request.connection.remoteAddress + ':' +socket.request.connection.remotePort + ' | ' + socket.id;
 	// make this value available in exit block, etc.
 	socket['user_id'] = user_id;
 
 	socketlist.push(socket);
-	console.log('A user connected: ' + user_id);
+	console.log('A user connected', user_id);
 
 	// disconnect seems to fire.  Not sure about close... TODO remove if needed.
 	socket.on('close', function () {
-	  console.log('socket closed: ', user_id );
+	  console.log('socket closed', user_id );
 		var client_index = socketlist.splice(socketlist.indexOf(socket), 1);
 		if (client_index == -1)
 			console.log("Socket was not in active list when disconnecting: ", user_id);
@@ -202,7 +201,7 @@ io.on('connection', function(socket) {
 	readStations();
 
 	socket.on('disconnect', function(){
-		console.log('User disconnected (client closed): ', user_id);
+		console.log('User disconnected (client closed)', user_id);
 		var client_index = socketlist.splice(socketlist.indexOf(socket), 1);
 		if (client_index == -1)
 			console.log("Socket was not in active list when disconnecting: ", user_id);
@@ -211,36 +210,41 @@ io.on('connection', function(socket) {
 	});
 
 	socket.on('process', function (data) {
+		console.log('User request:', data, user_id);
 		var action = data.action
 		ProcessCTL(action);
 	});
 
 	socket.on('action', function (data) {
+		console.log('User request:', data, user_id);
 		var action = data.action.substring(0, 1);
 		// rebroadcast changes - like 'pause' - but avoid circular
 		socket.broadcast.emit('action', { action: action});
 		PidoraCTL(action);
-		event_cmd_extension(action);
+		eventcmd_extension(action);
 	});
 
-	function event_cmd_extension (action) {
+	// if only pianobar supported more events....
+	function eventcmd_extension (action) {
 		switch (action) {
 			case 'S' :
 				fs.closeSync(fs.openSync(pausePlayTouchFile, 'a')); // touch the pause file
 				break;
 			case 'P' :
-				// Do not care about errors (file didn't exist)
+				// Do not care about errors (particularly file didn't exist)
 				fs.unlink(pausePlayTouchFile, (err) => {});
 				break;
 			}
 	}
 
 	socket.on('changeStation', function (data) {
+		console.log('User request:', data, user_id);
 		var stationId = data.stationId;
 		var cmd = 's' + stationId + '\n';
 		PidoraCTL(cmd);
 	});
 
+	// triggered by eventcmd.sh or other external drivers
 	app.post('/start', function(request, response){
 		var artist = request.query.artist;
 		var title = request.query.title;

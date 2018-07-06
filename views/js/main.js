@@ -1,6 +1,11 @@
 "use strict";
 var app = angular.module('patiobarApp', []);
 
+// TODO - after a server stop/start, the station highlighting is lost
+// ROOTCAUSE - fixed by issue with round-tripping the station name - it gets truncated to get rid of Radion, and then again..
+// TODO - after a server stop the song playing controls still show up FIXED/TESTME
+// TODO - after a server stop the playpause image doesn't always show up
+// TODO - for warming up, we don't want to have the message 'click play to start'
 
 //var socket = null;
 app.factory('socket', function ($rootScope) {
@@ -111,6 +116,7 @@ function StationController($scope, socket) {
 		catch (err) {
 			$scope.stationName = 'Unknown station';
 		}
+//console.log('station start', JSON.stringify(msg), $scope.stationName);
 	});
 
 	// stop message to station controller is different than stop to song controller
@@ -154,8 +160,9 @@ function SongController($scope, socket) {
 		$scope.alt = msg.album;
 		$scope.title = msg.title;
 		$scope.rating = msg.rating;
-		$scope.pianobarPlaying = msg.isplaying; // this should always be true for a start??
+		$scope.pianobarPlaying = msg.isplaying && msg.isrunning; // this should always be true for a start??
 		$scope.pianobarRunning = msg.isrunning; // this should always be true for a start??
+//console.log('song start', JSON.stringify(msg), $scope.pianobarPlaying);
 
 // this can be changed to an angular ng-class
 		if (msg.rating == 1) {
@@ -185,12 +192,14 @@ function SongController($scope, socket) {
 
 	socket.on('stop', function(msg) {
 		$scope.pianobarPlaying = false;
+		$scope.pianobarRunning = false;
 		var aa = 'pianobar turned off. click the play key to start';
 		$scope.albumartist = aa;
 		$scope.src = msg.coverArt;
 		$scope.alt = 'pianobar off';
 		$scope.title = msg.title;
 		$scope.rating = msg.rating;
+//console.log("song stop",JSON.stringify(msg), $scope.pianobarPlaying);
 	});
 
 	socket.on('action', function(msg) {
