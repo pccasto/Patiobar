@@ -1,9 +1,20 @@
 "use strict";
 var app = angular.module('patiobarApp', []);
 
+
+//var socket = null;
 app.factory('socket', function ($rootScope) {
-  var socket = io.connect();
+  var socket = io.connect()	 ;//"", {
   return {
+//	reconnect: function (eventName) {
+//		console.log('socket.reconnect attempt');
+//		//socket.io.reconnect();
+//		socket.on('connect', function(){
+//		console.log('reconnecting connected');
+//			// anything here?
+//		});
+//	},
+
 	on: function (eventName, callback) {
 	  socket.on(eventName, function () {
 		var args = arguments;
@@ -11,6 +22,15 @@ app.factory('socket', function ($rootScope) {
 		  callback.apply(socket, args);
 		});
 	  });
+	},
+	// TODO ... possibly needed to avoid memory leaks? still researching
+	off: function off(event, callback) {
+	   //We only have to check if the callback was provided and call socket.removeListener() or socket.removeAllListeners():
+		if (typeof callback == 'function') {
+			socket.removeListener(event, callback);
+		} else {
+			socket.removeAllListeners(event);
+		}
 	},
 	emit: function (eventName, data, callback) {
 	  socket.emit(eventName, data, function () {
@@ -21,15 +41,48 @@ app.factory('socket', function ($rootScope) {
 		  }
 		});
 	  })
-	}
+	},
+	removeAllListeners: function (eventName, callback) {
+		  socket.removeAllListeners(eventName, function() {
+			  var args = arguments;
+			  $rootScope.$apply(function () {
+				callback.apply(socket, args);
+			  });
+		  });
+	  }
   };
 });
 
 function ProcessController($scope, socket) {
+//app.controller('ProcessController',  ['$scope', socket, function ($scope, socket) {
+	socket.on( 'connect', function () {
+		console.log ('Connected back to server');
+		//$scope.$root.$broadcast('server-process', 'resume');
+	});
+
 	$scope.process = function(action) {
 		socket.emit('process', { action: action });
 	}
+// should just need this in one controllerv-but don't have service for broadcast yet
+	socket.on( 'disconnect', function () {
+		console.log ('Disconnected from server - dead or restarting?');
+		socket.flush;
+		//.title = "HACK HACK HACK - disconnected from patiobar server";
+
+//		socket = io.connect();//	,{'forceNew': true });
+//socket.io has some automatic retries at line 2815 -- need to see how to control
+		//window.setTimeout( 'regen_socket()', 5000 );
+
+	});
+
+	$scope.$on('$destroy', function (event) {
+		socket.removeAllListeners();
+	});
+
+//}]);
 }
+
+
 
 function StationController($scope, socket) {
 	socket.on('stations', function(msg) {
@@ -48,8 +101,9 @@ function StationController($scope, socket) {
 	});
 
 	socket.on('start', function(msg) {
+		$scope.pianobarRunning = true;
 		// in case msg arrives without stationName set
-		$scope.pianobarPlaying = true;
+		// turn this into a ternary
 		try {
 			var stationName = msg.stationName.substr(0, msg.stationName.length - 6);
 			$scope.stationName = stationName;
@@ -59,14 +113,37 @@ function StationController($scope, socket) {
 		}
 	});
 
+	// stop message to station controller is different than stop to song controller
 	socket.on('stop', function(msg) {
 		$scope.stationName = "";
-		$scope.pianobarPlaying = false;
+		//$scope.pianobarPlaying = false; // stations shouldn't care if song is playing or not
+		$scope.pianobarRunning = false;
+	});
+
+	socket.on('server-process', function(msg) {
+	  switch(msg) {
+		case'outage' :
+			$scope.stationName = "";
+			$scope.pianobarRunning = false;
+			break;
+		case 'restore' :
+			break;
+		}
+	});
+
+// should just need this in one controller
+	socket.on('disconnect', function () {
+		console.log('station controller disconnecting');
+		$scope.pianobarRunning=false;
 	});
 
 	$scope.changeStation = function(stationId) {
 		socket.emit('changeStation', { stationId: stationId });
 	}
+
+	$scope.$on('$destroy', function (event) {
+		socket.removeAllListeners();
+	});
 }
 
 function SongController($scope, socket) {
@@ -77,14 +154,32 @@ function SongController($scope, socket) {
 		$scope.alt = msg.album;
 		$scope.title = msg.title;
 		$scope.rating = msg.rating;
-		$scope.pianobarPlaying = msg.isplaying;
-		//alert($scope.pianobarPlaying);
+		$scope.pianobarPlaying = msg.isplaying; // this should always be true for a start??
+		$scope.pianobarRunning = msg.isrunning; // this should always be true for a start??
 
 // this can be changed to an angular ng-class
 		if (msg.rating == 1) {
 			document.getElementById("love").className = "btn btn-success pull-left";
 		} else {
 			document.getElementById("love").className = "btn btn-default pull-left";
+		}
+	});
+
+	socket.on('server-process', function(msg) {
+	console.log('got server-process message: ', msg)
+	  switch(msg) {
+		case'outage' :
+			$scope.pianobarPlaying = false;
+			var aa = 'PATIOBAR turned off. hopefully will restart soon';
+			$scope.albumartist = aa;
+			$scope.src = msg.coverArt;
+			$scope.alt = 'pianobar off';
+			$scope.title = msg.title;
+			$scope.rating = msg.rating;
+			break;
+		case 'restore' :
+			$scope.pianobarPlaying = true;
+			break;
 		}
 	});
 
@@ -116,17 +211,22 @@ function SongController($scope, socket) {
 		}
 	});
 
-	socket.on( 'disconnect', function () {
-	    alert( 'disconnected from server' );
-	    window.setTimeout( 'app.connect()', 5000 );
-	});
 
+//socket.on('disconnect', function () {
+//	if(socket.io.connecting.indexOf(socket) === -1) {
+//	  //you should renew token or do another important things before reconnecting
+//	  socket.connect();
+//	}
+//});
 	$scope.sendCommand = function(action) {
 		socket.emit('action', { action: action });
 	}
 
 	$scope.togglePausePlay= function() {
 		$scope.pianobarPlaying ? $scope.sendCommand('S') : $scope.sendCommand('P');
+		// maybe not set this here, then change the broadcast response to send to originator as well
+		// that would provide server feedback of the status? but gui button wouldn't seem responsive
+		// maybe change to ? button while waiting
 		$scope.pianobarPlaying = !$scope.pianobarPlaying;
 	};
 
@@ -136,5 +236,12 @@ function SongController($scope, socket) {
 			document.getElementById("love").className = "btn btn-success pull-left";
 		}
 	});
+	socket.on('disconnect', function () {
+		console.log('song controller disconnecting');
+		$scope.title = "HACK HACK HACK - disconnected from patiobar server";
+	});
 
+	$scope.$on('$destroy', function (event) {
+		socket.removeAllListeners();
+	});
 }

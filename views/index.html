@@ -22,7 +22,7 @@
 					<p class="navbar-brand"><a href="https://github.com/kylejohnson/Patiobar">Patiobar</a></p>
 				</div><!-- End navbar-header -->
 
-				<div id="station-wrapper" ng-class="{'hidden-controls': !pianobarPlaying}">
+				<div id="station-wrapper" ng-class="{'hidden-controls': !pianobarRunning}">
 					<div class="text-center collapse navbar-collapse" id="stations">
 						<button type="button" ng-repeat="station in stations" class="btn btn-default navbar-btn btn-sm" ng-click="stationName == station.name || changeStation(station.id);" ng-class="{'btn-success': stationName == station.name}">{{station.name}}</button>
 					</div>
@@ -40,7 +40,7 @@
 						<p id="albumartist">{{albumartist}}</p>
 					</div>
 
-					<div id="controls">
+					<div id="controls" ng-class="{'hidden-controls': !pianobarRunning}">
 						<button type="button" id="love" class="pull-left btn btn-default" ng-click="sendCommand('+');"> <span class="glyphicon glyphicon-thumbs-up"></span> </button>
 						<button id="pauseplay" type="button" class="btn btn-default" ng-click="togglePausePlay()"> <span id="pauseplayICON" ng-class="pianobarPlaying ? 'glyphicon glyphicon-pause' : 'glyphicon glyphicon-play'"> </span> </button>
 						<button type="button" class="btn btn-default" ng-click="sendCommand('n');"> <span class="glyphicon glyphicon-fast-forward"></span> </button>
@@ -53,19 +53,23 @@
 			</div> <!-- End Player -->
 		</div> <!-- End container (SongController) -->
 
-		<div class="container" ng-controller="ProcessController">
-			<div class="container-fluid center-block">
-				<div id="process">
-					<span>Music server control:</span>
-					<button id="process-start" type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('start')"> <span class="glyphicon glyphicon-play"></span> </button>
-					<button id="process-stop"  type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('stop')">  <span class="glyphicon glyphicon-stop"></span> </button>
-				</div>
+		<nav class="navbar navbar-inverse" role="navigation" ng-controller="ProcessController">
+			<div class="container-fluid">
+
+				<div class="container" ng-controller="ProcessController">
+						<div id="process">
+							<span>Music server control: </span>
+							<button id="process-start" type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('start')"> <span class="glyphicon glyphicon-play"></span> </button>
+							<button id="process-stop"  type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('stop')">	<span class="glyphicon glyphicon-stop"></span> </button>
+						</div>
+				</div> <!-- End container (Process Controller) -->
 			</div> <!-- End container-fluid -->
-		</div> <!-- End container (Process Controller) -->
+		</nav>
+
 
 		<script src="/socket.io/socket.io.js"></script>
 		<script src="/js/jquery-2.1.1.min.js"></script>
-		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.22/angular.min.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.32/angular.min.js"></script>
 		<script src="/js/bootstrap.min.js"></script>
 		<script src="/js/main.js"></script>
 	</body>
