@@ -5,7 +5,11 @@ PIANOBAR_BIN=pianobar
 PATIOBAR_DIR=~pi/Patiobar
 
 case "$1" in
+
   start)
+        # should this return the pid of pianobar?
+        # right now need two calls - one to start, and one to pianobar-status
+        # likely will leave it that way for now
         EXITSTATUS=0
         pushd . > /dev/null
         cd $PIANOBAR_DIR
@@ -20,7 +24,7 @@ case "$1" in
         EXITSTATUS=0
         pushd . > /dev/null
         cd $PIANOBAR_DIR
-        [[ 1 -eq $(screen -list | grep -c pianobar) ]] || screen -S pianobar -d -m PIANOBAR_BIN
+        [[ 1 -eq $(screen -list | grep -c pianobar) ]] || screen -S pianobar -d -m $PIANOBAR_BIN
         cd $PATIOBAR_DIR
         [[ 1 -eq $(ps aux | grep -v grep | grep -c index.js) ]] || nodemon index.js
         popd > /dev/null
@@ -50,11 +54,11 @@ case "$1" in
         exit $EXITSTATUS
         ;;
   status-pianobar)
-        echo screen -list
-        [[ $(screen -list | grep -c pianobar) -eq 1 ]]
-        rc=$?
-        echo $rc
-        exit $rc
+        EXITSTATUS=0
+        pb_pid=$(($(screen -list | grep pianobar | cut -d. -f1)))
+        EXITSTATUS=$([[ $(($(screen -list | grep pianobar | cut -d. -f1))) -ge 1 ]] && echo 0 || echo 1)
+        [[ $EXITSTATUS -eq 0 ]] && echo $pb_pid
+        exit $EXITSTATUS
         ;;
   *)
         echo "Usage: $0 {start |stop | stop-pianobar |restart |status | status-pianobar }" >&2
