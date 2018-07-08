@@ -215,6 +215,26 @@ io.on('connection', function(socket) {
 		ProcessCTL(action);
 	});
 
+	socket.on('query', function (data) {
+		console.log('User request:', data, user_id);
+		switch( data.query ) {
+		  case 'curSong' :
+		    readCurrentSong()
+		    break
+		  case 'curStation' :
+		    readCurrentSong()
+		    break;
+		  case 'allStations' :
+		    readStations();
+		    break;
+		  case '*' :
+		    console.log('Unknown request')
+		    break;
+		  }
+
+	});
+
+
 	socket.on('action', function (data) {
 		console.log('User request:', data, user_id);
 		var action = data.action.substring(0, 1);
