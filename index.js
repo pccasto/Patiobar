@@ -1,3 +1,4 @@
+/* jshint esversion:6, node: true */
 "use strict";
 
 // TODO - real logging framework...
@@ -50,7 +51,7 @@ function isPianobarPlaying() {
 
 // need to use a command to really check
 function isPianobarRunning() {
-	var pb_status = child_process.spawnSync(patiobarCtl, ['status-pianobar'])
+	var pb_status = child_process.spawnSync(patiobarCtl, ['status-pianobar']);
 	return pb_status.status == 0 ?	true : false;
 
 //	console.log("running is:", running);
@@ -58,7 +59,7 @@ function isPianobarRunning() {
 }
 
 function readCurrentSong() {
-	var currentSong = fs.readFileSync(currentSongFile).toString()
+	var currentSong = fs.readFileSync(currentSongFile).toString();
 
 	if (currentSong) {
 	   var a = currentSong.split(',,,');
@@ -73,7 +74,7 @@ function readCurrentSong() {
 
 function clearBuffer() {
 	try {
-		child_process.spawnSync("dd" ["if=", fifo , "iflag=nonblock", "of=/dev/null"])
+		child_process.spawnSync("dd", ["if=", fifo , "iflag=nonblock", "of=/dev/null"]);
 		//systemSync("dd if=" + fifo + " iflag=nonblock of=/dev/null", false, true)
 	}
 	catch (err) {
@@ -93,9 +94,9 @@ function clearBuffer() {
 //}
 
 function ProcessCTL(action) {
-	var songTemplate = { artist: '', title: '', album: '', 
-					coverArt: pianobarOffImageURL, rating: '', 
-					stationName: '', isplaying: false, isrunning: false }
+	var songTemplate = { artist: '', title: '', album: '',
+					coverArt: pianobarOffImageURL, rating: '',
+					stationName: '', isplaying: false, isrunning: false };
 	switch(action) {
 	  case 'start':
 		if (isPianobarRunning()) {
@@ -105,7 +106,7 @@ function ProcessCTL(action) {
 		console.log('Starting Pianobar');
 		// pianobar starts in the running state, unless work is done to force it otherwise
 		// but wait for the first start message to change the playing from false to true
-		var songStatus = Object.assign(songTemplate, { title: 'Warming up', isrunning: true})
+		var songStatus = Object.assign(songTemplate, { title: 'Warming up', isrunning: true});
 		io.emit('stop', songStatus);
 //		io.emit('stop', {...songTemplate, ...{ title: 'Warming up',, isrunning: true}});
 
@@ -114,8 +115,8 @@ function ProcessCTL(action) {
 		// now would be the time to send a 'S' if we wanted to start paused
 		try {
 			clearBuffer();
-			var pb_start = child_process.spawnSync(patiobarCtl, ['start'])
-			if (pb_start.status != 0) throw pb_start.error
+			var pb_start = child_process.spawnSync(patiobarCtl, ['start']);
+			if (pb_start.status != 0) throw pb_start.error;
 		}
 		catch(err) {
 			console.log(err);
@@ -199,7 +200,7 @@ io.on('connection', function(socket) {
 	// remotePort is often Wrong (or at least was with old library) -- but
 	var user_id = socket.request.connection.remoteAddress + ':' +socket.request.connection.remotePort + ' | ' + socket.id;
 	// make this value available in exit block, etc.
-	socket['user_id'] = user_id;
+	socket.user_id = user_id;
 
 	socketlist.push(socket);
 	console.log('A user connected', user_id);
@@ -221,13 +222,13 @@ io.on('connection', function(socket) {
 		var client_index = socketlist.splice(socketlist.indexOf(socket), 1);
 		if (client_index == -1)
 			console.log("Socket was not in active list when disconnecting: ", user_id);
-		socket.flush;
+		socket.flush();
 		socket.disconnect(0);
 	});
 
 	socket.on('process', function (data) {
 		console.log('User request:', data, user_id);
-		var action = data.action
+		var action = data.action;
 		ProcessCTL(action);
 	});
 
@@ -235,16 +236,16 @@ io.on('connection', function(socket) {
 		console.log('User request:', data, user_id);
 		switch( data.query ) {
 		  case 'curSong' :
-		    readCurrentSong()
-		    break
+		    readCurrentSong();
+		    break;
 		  case 'curStation' :
-		    readCurrentSong()
+		    readCurrentSong();
 		    break;
 		  case 'allStations' :
 		    readStations();
 		    break;
 		  case '*' :
-		    console.log('Unknown request')
+		    console.log('Unknown request');
 		    break;
 		  }
 
@@ -324,7 +325,7 @@ process.on('exit', exitHandler.bind(null,{cleanup:true}));
 
 [`SIGINT`, `SIGUSR1`, `SIGUSR2`, `uncaughtException`, `SIGTERM`].forEach((eventType) => {
   process.on(eventType, exitHandler.bind(null, {exit:true}));
-})
+});
 
 process.on(`SIGHUP`, function() {
 	console.log("Connection Status (from HUP): ", io.sockets.sockets.length);

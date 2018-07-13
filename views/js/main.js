@@ -1,3 +1,5 @@
+/* jshint esversion:6, node: true, browser: true */
+/* globals angular, io */
 "use strict";
 var app = angular.module('patiobarApp', []);
 
@@ -45,7 +47,7 @@ app.factory('socket', function ($rootScope) {
 			callback.apply(socket, args);
 		  }
 		});
-	  })
+  });
 	},
 	removeAllListeners: function (eventName, callback) {
 		  socket.removeAllListeners(eventName, function() {
@@ -67,11 +69,11 @@ function ProcessController($scope, socket) {
 
 	$scope.process = function(action) {
 		socket.emit('process', { action: action });
-	}
+	};
 // should just need this in one controllerv-but don't have service for broadcast yet
 	socket.on( 'disconnect', function () {
 		console.log ('Disconnected from server - dead or restarting?');
-		socket.flush;
+		socket.flush();
 		//.title = "HACK HACK HACK - disconnected from patiobar server";
 
 //		socket = io.connect();//	,{'forceNew': true });
@@ -145,7 +147,7 @@ function StationController($scope, socket) {
 
 	$scope.changeStation = function(stationId) {
 		socket.emit('changeStation', { stationId: stationId });
-	}
+	};
 
 	$scope.$on('$destroy', function (event) {
 		socket.removeAllListeners();
@@ -173,7 +175,7 @@ function SongController($scope, socket) {
 	});
 
 	socket.on('server-process', function(msg) {
-	console.log('got server-process message: ', msg)
+	console.log('got server-process message: ', msg);
 	  switch(msg) {
 		case'outage' :
 			$scope.pianobarPlaying = false;
@@ -229,10 +231,10 @@ function SongController($scope, socket) {
 //});
 	$scope.sendCommand = function(action) {
 		socket.emit('action', { action: action });
-	}
+	};
 
 	$scope.togglePausePlay= function() {
-		$scope.pianobarPlaying ? $scope.sendCommand('S') : $scope.sendCommand('P');
+		$scope.sendCommand($scope.pianobarPlaying ? 'S': 'P');
 		// maybe not set this here, then change the broadcast response to send to originator as well
 		// that would provide server feedback of the status? but gui button wouldn't seem responsive
 		// maybe change to ? button while waiting
