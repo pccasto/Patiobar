@@ -110,7 +110,7 @@ function StationController($scope, socket) {
 		// in case msg arrives without stationName set
 		// turn this into a ternary
 		try {
-			var stationName = msg.stationName.substr(0, msg.stationName.length - 6);
+			var stationName = msg.stationName.replace(" Radio", "");
 			$scope.stationName = stationName;
 		}
 		catch (err) {

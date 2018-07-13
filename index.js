@@ -5,7 +5,18 @@
 
 
 // add timestamps in front of log messages
-require('console-stamp')(console, '[HH:MM:ss.l]');
+//require('console-stamp')(console, '[HH:MM:ss.l]');
+require('console-stamp')(console, {
+    metadata: function () {
+        return ('[' + process.memoryUsage().rss + ']');
+    },
+    colors: {
+        stamp: 'yellow',
+        label: 'white',
+        metadata: 'green'
+    }
+});
+
 
 const
 	express = require('express'),
@@ -82,6 +93,9 @@ function clearBuffer() {
 //}
 
 function ProcessCTL(action) {
+	var songTemplate = { artist: '', title: '', album: '', 
+					coverArt: pianobarOffImageURL, rating: '', 
+					stationName: '', isplaying: false, isrunning: false }
 	switch(action) {
 	  case 'start':
 		if (isPianobarRunning()) {
@@ -91,7 +105,9 @@ function ProcessCTL(action) {
 		console.log('Starting Pianobar');
 		// pianobar starts in the running state, unless work is done to force it otherwise
 		// but wait for the first start message to change the playing from false to true
-		io.emit('stop', { artist: ' ', title: 'Warming up', album: ' ', coverArt: pianobarOffImageURL, rating: '', stationName: 'pending', isplaying: false, isrunning: false});
+		var songStatus = Object.assign(songTemplate, { title: 'Warming up', isrunning: true})
+		io.emit('stop', songStatus);
+//		io.emit('stop', {...songTemplate, ...{ title: 'Warming up',, isrunning: true}});
 
 		// minimize any junk commands introduced while system was offline
 
@@ -108,17 +124,17 @@ function ProcessCTL(action) {
 		break;
 
 	  case 'stop':
+		io.emit('stop', songTemplate);
 		if (!isPianobarRunning()) {
 			console.log("Pianobar is not running, so no need to stop");
 			return;
 		}
 		console.log('Stopping Pianobar');
-		try {
+//		try {
 			clearBuffer();
 			console.log('Buffer should now be cleared');
 
 			PidoraCTL('q');
-			io.emit('stop', { artist: '', title: '', album: '', coverArt: pianobarOffImageURL, rating: '', stationName: '', isplaying: false, isrunning: false });
 			fs.writeFile(process.env.HOME + '/.config/pianobar/currentSong', 'PIANOBAR_STOPPED,,,,', function (err) {
 				if (err) {
 				  console.log(err);
@@ -127,11 +143,11 @@ function ProcessCTL(action) {
 					console.log('Stop entry made in currentSong file!');
 				}
 			});
-		}
-		catch (err) {
-			console.log('Error in stopping Pianobar: ' + err.message);
-			return;
-		}
+//		}
+//		catch (err) {
+//			console.log('Error in stopping Pianobar: ' + err.message);
+//			return;
+//		}
 		break;
 
 	  default:
@@ -273,7 +289,7 @@ io.on('connection', function(socket) {
 		var rating = request.query.rating;
 		var stationName = request.query.stationName;
 		readStations();
-		io.emit('start', { artist: artist, title: title, coverArt: coverArt, album: album, rating: rating, stationName: stationName, isplaying: isPianobarPlaying(), isrunning: isPianobarRunning() });
+		io.emit('start', { artist: artist, title: title,  album: album, coverArt: coverArt,rating: rating, stationName: stationName, isplaying: isPianobarPlaying(), isrunning: isPianobarRunning() });
 		response.send(request.query);
 
 	});
