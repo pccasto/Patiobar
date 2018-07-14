@@ -14,19 +14,25 @@ case "$1" in
         pushd . > /dev/null
         cd $PIANOBAR_DIR
         [[ 1 -eq $(screen -list | grep -c pianobar) ]] || screen -S pianobar -d -m $PIANOBAR_BIN
+        EXITSTATUS=$?
         cd $PATIOBAR_DIR
         [[ 1 -eq $(screen -list | grep -c patiobar) ]] || screen -S patiobar -d -m node index.js
+        EXITSTATUS=$(($? + $EXITSTATUS))
         popd > /dev/null
         exit "$EXITSTATUS"
         ;;
 
-  test)
+  testmode)
         EXITSTATUS=0
         pushd . > /dev/null
         cd $PIANOBAR_DIR
         [[ 1 -eq $(screen -list | grep -c pianobar) ]] || screen -S pianobar -d -m $PIANOBAR_BIN
         cd $PATIOBAR_DIR
-        [[ 1 -eq $(ps aux | grep -v grep | grep -c index.js) ]] || nodemon index.js
+//        [[ 1 -eq $(ps aux | grep -v grep | grep -c index.js) ]] || nodemon index.js
+        [[ 1 -eq $(screen -list | grep -c patiobar) ]] && pkill -f "SCREEN -S patiobar"
+        nodemon index.js
+        # at this point we are interactive, so exitstatus is less meaningful
+        EXITSTATUS=$(($? + $EXITSTATUS))
         popd > /dev/null
         exit "$EXITSTATUS"
         ;;
@@ -34,23 +40,28 @@ case "$1" in
   stop)
         EXITSTATUS=0
         pkill -f "SCREEN -S pianobar"
+        EXITSTATUS=$?
         pkill -f "SCREEN -S patiobar"
+        EXITSTATUS=$(($? + $EXITSTATUS))
         exit $EXITSTATUS
         ;;
   stop-pianobar)
         EXITSTATUS=0
         pkill -f "SCREEN -S pianobar"
+        EXITSTATUS=$?
         exit $EXITSTATUS
         ;;
   restart|force-reload)
         EXITSTATUS=0
         $0 stop || EXITSTATUS=1
-        $0 start || EXITSTATUS=1
+        $0 start || EXITSTATUS==$(($? + $EXITSTATUS))
         exit $EXITSTATUS
         ;;
   status)
+        # more of a list than a status, since this doesn't check values
         EXITSTATUS=0
         screen -list
+        EXITSTATUS=$?
         exit $EXITSTATUS
         ;;
   status-pianobar)
@@ -61,7 +72,7 @@ case "$1" in
         exit $EXITSTATUS
         ;;
   *)
-        echo "Usage: $0 {start |stop | stop-pianobar |restart |status | status-pianobar }" >&2
+        echo "Usage: $0 {start |stop | stop-pianobar |restart |status | status-pianobar | testmode }" >&2
         exit 3
         ;;
 esac
