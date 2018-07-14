@@ -222,7 +222,6 @@ io.on('connection', function(socket) {
 		var client_index = socketlist.splice(socketlist.indexOf(socket), 1);
 		if (client_index == -1)
 			console.log("Socket was not in active list when disconnecting: ", user_id);
-		socket.flush();
 		socket.disconnect(0);
 	});
 
