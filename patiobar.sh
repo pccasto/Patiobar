@@ -28,7 +28,7 @@ case "$1" in
         cd $PIANOBAR_DIR
         [[ 1 -eq $(screen -list | grep -c pianobar) ]] || screen -S pianobar -d -m $PIANOBAR_BIN
         cd $PATIOBAR_DIR
-//        [[ 1 -eq $(ps aux | grep -v grep | grep -c index.js) ]] || nodemon index.js
+#        [[ 1 -eq $(ps aux | grep -v grep | grep -c index.js) ]] || nodemon index.js
         [[ 1 -eq $(screen -list | grep -c patiobar) ]] && pkill -f "SCREEN -S patiobar"
         nodemon index.js
         # at this point we are interactive, so exitstatus is less meaningful

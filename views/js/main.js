@@ -73,7 +73,6 @@ function ProcessController($scope, socket) {
 // should just need this in one controllerv-but don't have service for broadcast yet
 	socket.on( 'disconnect', function () {
 		console.log ('Disconnected from server - dead or restarting?');
-		socket.flush();
 		//.title = "HACK HACK HACK - disconnected from patiobar server";
 
 //		socket = io.connect();//	,{'forceNew': true });
@@ -96,7 +95,7 @@ function StationController($scope, socket) {
 		msg.stations.pop();
 		var s = [];
 
-		for (var i in msg.stations) {
+		for (var i = 0; i < msg.stations.length; i++) {
 			var array = msg.stations[i].split(":");
 			var id = array[0];
 			var name = array[1].replace(" Radio", "");

@@ -4,7 +4,6 @@
 // TODO - real logging framework...
 // TODO - log user_id of command senders
 
-
 // add timestamps in front of log messages
 //require('console-stamp')(console, '[HH:MM:ss.l]');
 require('console-stamp')(console, {
@@ -53,22 +52,25 @@ function isPianobarPlaying() {
 function isPianobarRunning() {
 	var pb_status = child_process.spawnSync(patiobarCtl, ['status-pianobar']);
 	return pb_status.status == 0 ?	true : false;
-
-//	console.log("running is:", running);
-//	return running;
 }
 
 function readCurrentSong() {
 	var currentSong = fs.readFileSync(currentSongFile).toString();
+	var songTemplate = { artist: '', title: '', album: '',
+					coverArt: pianobarOffImageURL, rating: '',
+					stationName: '', isplaying: false, isrunning: false };
 
 	if (currentSong) {
 	   var a = currentSong.split(',,,');
-	   // console.log(a);
 	   if (a[0] == "PIANOBAR_STOPPED") {
-		 ProcessCTL('stop');
+		 return (songTemplate);
 	   } else {
-		 io.emit('start', { artist: a[0], title: a[1], album: a[2], coverArt: a[3], rating: a[4], stationName: a[5], isplaying: isPianobarPlaying() , isrunning: isPianobarRunning()});
+		  return ({ artist: a[0], title: a[1], album: a[2], coverArt: a[3], rating: a[4], stationName: a[5], isplaying: isPianobarPlaying() , isrunning: isPianobarRunning()});
+
 	   }
+	} else {
+	   console.error('No current song file');
+	    return(songTemplate);
 	}
 }
 
@@ -107,14 +109,15 @@ function ProcessCTL(action) {
 		// pianobar starts in the running state, unless work is done to force it otherwise
 		// but wait for the first start message to change the playing from false to true
 		var songStatus = Object.assign(songTemplate, { title: 'Warming up', isrunning: true});
-		io.emit('stop', songStatus);
-//		io.emit('stop', {...songTemplate, ...{ title: 'Warming up',, isrunning: true}});
+		// io.emit('start', songStatus);
+		//io.emit('start', {...songTemplate, ...{ title: 'Warming up', isrunning: true}});
+		io.emit('start', songStatus);
 
-		// minimize any junk commands introduced while system was offline
 
-		// now would be the time to send a 'S' if we wanted to start paused
 		try {
+			// minimize any junk commands introduced while system was offline
 			clearBuffer();
+			if (!isPianobarPlaying()) PidoraCTL('S');  // if paused, stay paused after restart
 			var pb_start = child_process.spawnSync(patiobarCtl, ['start']);
 			if (pb_start.status != 0) throw pb_start.error;
 		}
@@ -133,8 +136,6 @@ function ProcessCTL(action) {
 		console.log('Stopping Pianobar');
 //		try {
 			clearBuffer();
-			console.log('Buffer should now be cleared');
-
 			PidoraCTL('q');
 			fs.writeFile(process.env.HOME + '/.config/pianobar/currentSong', 'PIANOBAR_STOPPED,,,,', function (err) {
 				if (err) {
@@ -188,10 +189,11 @@ function PidoraCTL(action) {
 	});
 }
 
+// TODO consider making this more responsive if add/rename station is added
+// todo consider making this a remembered global variable
 function readStations() {
-	var stations = fs.readFileSync(process.env.HOME + '/.config/pianobar/stationList').toString().split("\n");
-
-	io.emit('stations', { stations: stations });
+	var list = fs.readFileSync(process.env.HOME + '/.config/pianobar/stationList').toString().split("\n");
+	return {'stations': list};
 }
 
 var socketlist = [];
@@ -214,8 +216,8 @@ io.on('connection', function(socket) {
 		socket.disconnect(0);
 	});
 
-	readCurrentSong();
-	readStations();
+	socket.emit('start', readCurrentSong());
+	socket.emit('stations', readStations());
 
 	socket.on('disconnect', function(){
 		console.log('User disconnected (client closed)', user_id);
@@ -235,13 +237,13 @@ io.on('connection', function(socket) {
 		console.log('User request:', data, user_id);
 		switch( data.query ) {
 		  case 'curSong' :
-		    readCurrentSong();
+		    socket.emit('query', readCurrentSong());
 		    break;
 		  case 'curStation' :
-		    readCurrentSong();
+		    socket.emit('query', readCurrentSong());
 		    break;
 		  case 'allStations' :
-		    readStations();
+		    socket.emit('query', readStations());
 		    break;
 		  case '*' :
 		    console.log('Unknown request');
@@ -250,12 +252,11 @@ io.on('connection', function(socket) {
 
 	});
 
-
 	socket.on('action', function (data) {
 		console.log('User request:', data, user_id);
 		var action = data.action.substring(0, 1);
-		// rebroadcast changes - like 'pause' - but avoid circular
-		socket.broadcast.emit('action', { action: action});
+		// rebroadcast changes - like 'pause' - but avoid circular - removed broadcast - circular is needed...
+		io.emit('action', { action: action});
 		PidoraCTL(action);
 		eventcmd_extension(action);
 	});
@@ -288,10 +289,10 @@ io.on('connection', function(socket) {
 		var coverArt = request.query.coverArt;
 		var rating = request.query.rating;
 		var stationName = request.query.stationName;
-		readStations();
+		io.emit('stations', readStations() );
 		io.emit('start', { artist: artist, title: title,  album: album, coverArt: coverArt,rating: rating, stationName: stationName, isplaying: isPianobarPlaying(), isrunning: isPianobarRunning() });
+		if (!isPianobarPlaying()) PidoraCTL('S');  // if paused, stay paused after station change
 		response.send(request.query);
-
 	});
 
 	app.post('/lovehate', function(request, response) {
