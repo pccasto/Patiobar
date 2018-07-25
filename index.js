@@ -1,5 +1,6 @@
 /* jshint esversion:6, node: true */
-"use strict";
+
+'use strict';
 
 // TODO - real logging framework...
 // add timestamps in front of log messages
@@ -20,15 +21,15 @@ const
 	server = require('http').createServer(app),
 	io = require('socket.io')(server),
 	fs = require('fs'),
-	child_process = require("child_process"),
+	child_process = require('child_process'),
 
 	fifo = process.env.PIANOBAR_FIFO || 'ctl',
 	listenPort = process.env.PATIOBAR_PORT || 3000,
 
 	patiobarCtl    = process.env.PIANOBAR_START  || process.env.HOME + '/Patiobar/patiobar.sh',
-	pianobarStart  = process.env.PIANOBAR_START  || process.env.HOME + '/Patiobar/patiobar.sh start',
-	pianobarStop   = process.env.PIANOBAR_STOP   || process.env.HOME + '/Patiobar/patiobar.sh stop-pianobar',
-	pianobarStatus = process.env.PIANOBAR_STATUS || process.env.HOME + '/Patiobar/patiobar.sh status-pianobar',
+	//pianobarStart  = process.env.PIANOBAR_START  || process.env.HOME + '/Patiobar/patiobar.sh start',
+	//pianobarStop   = process.env.PIANOBAR_STOP   || process.env.HOME + '/Patiobar/patiobar.sh stop-pianobar',
+	//pianobarStatus = process.env.PIANOBAR_STATUS || process.env.HOME + '/Patiobar/patiobar.sh status-pianobar',
 
 	pianobarOffImageURL = 'images/On_Off.png',
 
@@ -45,7 +46,7 @@ function isPianobarPlaying() {
 // need to use a command to really check
 function isPianobarRunning() {
 	var pb_status = child_process.spawnSync(patiobarCtl, ['status-pianobar']);
-	return pb_status.status == 0 ? true : false;
+	return pb_status.status === 0 ? true : false;
 }
 
 function readCurrentSong() {
@@ -56,7 +57,7 @@ function readCurrentSong() {
 
 	if (currentSong) {
 		var a = currentSong.split(',,,');
-			if (a[0] == "PIANOBAR_STOPPED") {
+			if (a[0] === 'PIANOBAR_STOPPED') {
 		 return (songTemplate);
 		} else {
 			return ({ artist: a[0], title: a[1], album: a[2], coverArt: a[3], rating: a[4], stationName: a[5], isplaying: isPianobarPlaying() , isrunning: isPianobarRunning()});
@@ -69,7 +70,7 @@ function readCurrentSong() {
 
 function clearFIFO() {
 	try {
-		child_process.spawnSync("dd", ["if=", fifo , "iflag=nonblock", "of=/dev/null"]);
+		child_process.spawnSync('dd', ['if=', fifo , 'iflag=nonblock', 'of=/dev/null']);
 	}
 	catch (err) {
 		console.log('EAGAIN type errors happen often (resource not available): ' + err.message);
@@ -80,73 +81,13 @@ function clearFIFO() {
 //	return child_process.exec(cmd, (err, stdout, stderr) => {
 //	  console.log('should be quiet:', quiet);
 //		if (err) {
-//			console.log("Command | Error", cmd, err);
+//			console.log('Command | Error', cmd, err);
 //		}
 //	verbose && console.log('stdout is:' + stdout);
 //	verbose && console.log('stderr is:' + stderr);
 //	})
 //}
 
-function ProcessCTL(action) {
-	var songTemplate = { artist: '', title: '', album: '',
-			coverArt: pianobarOffImageURL, rating: '',
-			stationName: '', isplaying: false, isrunning: false };
-	switch(action) {
-		case 'start':
-			if (isPianobarRunning()) {
-				console.log("Pianobar is already running");
-				return;
-			}
-			console.log('Starting Pianobar');
-			// pianobar starts in the running state, unless work is done to force it otherwise
-			// but wait for the first start message to change the playing from false to true
-			var songStatus = Object.assign(songTemplate, { title: 'Warming up', isrunning: true});
-			//io.emit('start', {...songTemplate, ...{ title: 'Warming up', isrunning: true}});
-			io.emit('start', songStatus);
-
-			try {
-				// minimize any junk commands introduced while system was offline
-				clearFIFO();
-				if (!isPianobarPlaying()) PidoraCTL('S');  // if paused, stay paused after restart
-				var pb_start = child_process.spawnSync(patiobarCtl, ['start']);
-				if (pb_start.status != 0) throw pb_start.error;
-			}
-			catch(err) {
-				console.log(err);
-				return;
-			}
-			break;
-
-	  case 'stop':
-			io.emit('stop', songTemplate);
-			if (!isPianobarRunning()) {
-				console.log("Pianobar is not running, so no need to stop");
-				return;
-			}
-			console.log('Stopping Pianobar');
-//		try {
-			clearFIFO();
-			PidoraCTL('q');
-			fs.writeFile(process.env.HOME + '/.config/pianobar/currentSong', 'PIANOBAR_STOPPED,,,,', function (err) {
-				if (err) {
-				  console.log(err);
-				  return;
-				} else {
-					console.log('Stop entry made in currentSong file!');
-				}
-			});
-//		}
-//		catch (err) {
-//			console.log('Error in stopping Pianobar: ' + err.message);
-//			return;
-//		}
-			break;
-
-	  default:
-			console.log('Unrecognized process action: ' + action);
-			break;
-	}
-}
 
 function PidoraCTL(action) {
 	// this might be a blocking write, which is problematic if patiobar is not reading...
@@ -160,7 +101,7 @@ function PidoraCTL(action) {
 		}
 
 		var buf = new Buffer.from(action);
-		fs.write(fd, buf, 0, action.length, null, function(error, written, buffer) {
+		fs.write(fd, buf, 0, action.length, null, function(error, written) {  // is there a need for f(error, written, buffer)
 			if (fd) {
 				fs.close(fd, function(err) {
 					if (err) console.log('Error closing fifo: ' + error);
@@ -169,7 +110,7 @@ function PidoraCTL(action) {
 			if (error) {
 				console.log('Error writing to fifo: ' + error);
 			} else {
-				if (written == action.length) {
+				if (written === action.length) {
 					console.log(action.trim('\n') + ' has been written successfully!');
 				} else {
 					console.log('Error: Only wrote ' + written + ' out of ' + action.length + ' bytes to fifo.');
@@ -179,15 +120,128 @@ function PidoraCTL(action) {
 	});
 }
 
+function ProcessCTL(action) {
+	var songTemplate = { artist: '', title: '', album: '',
+			coverArt: pianobarOffImageURL, rating: '',
+			stationName: '', isplaying: false, isrunning: false };
+	switch(action) {
+		case 'start':
+			if (isPianobarRunning()) {
+				console.log('Pianobar is already running');
+				return;
+			}
+			console.log('Starting Pianobar');
+			// pianobar starts in the running state, unless work is done to force it otherwise
+			// but wait for the first start message to change the playing from false to true
+			var songStatus = Object.assign(songTemplate, { title: 'Warming up', isplaying: false, isrunning: false});
+			io.emit('start', songStatus);
+
+			try {
+				// minimize any junk commands introduced while system was offline
+				clearFIFO();
+				if (!isPianobarPlaying()) PidoraCTL('S');  // if paused, stay paused after restart
+				var pb_start = child_process.spawnSync(patiobarCtl, ['start']);
+				if (pb_start.status !== 0) throw pb_start.error;
+			}
+			catch(err) {
+				console.log(err);
+				return;
+			}
+			break;
+
+		case 'stop':
+			io.emit('stop', songTemplate);
+			if (!isPianobarRunning()) {
+				console.log('Pianobar is not running, so no need to stop');
+				return;
+			}
+			console.log('Stopping Pianobar');
+			//		try {
+			clearFIFO();
+			PidoraCTL('q');
+			fs.writeFile(process.env.HOME + '/.config/pianobar/currentSong', 'PIANOBAR_STOPPED,,,,', function (err) {
+				if (err) {
+					console.log(err);
+					return;
+				} else {
+					console.log('Stop entry made in currentSong file!');
+				}
+			});
+			//		}
+			//		catch (err) {
+			//			console.log('Error in stopping Pianobar: ' + err.message);
+			//			return;
+			//		}
+			break;
+
+		// try to inform clients when patiobar is shutting down
+		case 'patiobar-stopping':
+			io.emit('stop', songTemplate);
+			console.log('Stopping Patiobar');
+			break;
+
+		case 'system-stop':
+			io.emit('stop', songTemplate);
+			console.log('Stopping System!');
+			PidoraCTL('q');
+			fs.writeFile(process.env.HOME + '/.config/pianobar/currentSong', 'PIANOBAR_STOPPED,,,,', function (err) {
+				if (err) {
+					console.log(err);
+					return;
+				} else {
+					console.log('Stop entry made in currentSong file!');
+				}
+			});
+			var system_stop = child_process.spawnSync(patiobarCtl, ['system-stop']);
+			if (system_stop.status !== 0) throw system_stop.error;
+			break;
+
+		case 'system-reboot':
+			io.emit('stop', songTemplate);
+			console.log('Rebooting System!');
+			PidoraCTL('q');
+			fs.writeFile(process.env.HOME + '/.config/pianobar/currentSong', 'PIANOBAR_STOPPED,,,,', function (err) {
+				if (err) {
+					console.log(err);
+					return;
+				} else {
+					console.log('Stop entry made in currentSong file!');
+				}
+			});
+			var system_reboot = child_process.spawnSync(patiobarCtl, ['system-reboot']);
+			if (system_reboot.status !== 0) throw system_reboot.error;
+			break;
+
+		default:
+			console.log('Unrecognized process action: ' + action);
+			break;
+	}
+}
+
 // TODO consider making this more responsive if add/rename station is added
 // TODO consider making this a remembered global variable
 function readStations() {
-	var list = fs.readFileSync(process.env.HOME + '/.config/pianobar/stationList').toString().split("\n");
+	var list = fs.readFileSync(process.env.HOME + '/.config/pianobar/stationList').toString().split('\n');
 	return {'stations': list};
 }
 
-var socketlist = [];
+// if only pianobar supported more events....
+// right now this just provides some extra logic around play/pause
+// of course if pianobar is controlled directly (outside of patiobar),
+// this extra handling does not get called, and the logic fails...
+function eventcmd_extension (action) {
+	switch (action) {
+		case 'S' :
+			fs.closeSync(fs.openSync(pausePlayTouchFile, 'a')); // touch the pause file
+			break;
+		case 'P' :
+			// Do not care about errors (particularly file didn't exist)
+			fs.unlink(pausePlayTouchFile, () => {});  // is there a need for (err)
+			break;
+	}
+}
 
+var socketlist = [];
 io.on('connection', function(socket) {
 	// remotePort is often Wrong (or at least seemed to be with old library)
 	var user_id = socket.request.connection.remoteAddress + ':' +socket.request.connection.remotePort + ' | ' + socket.id;
@@ -201,8 +255,8 @@ io.on('connection', function(socket) {
 	socket.on('close', function () {
 		console.log('socket closed', user_id );
 		var client_index = socketlist.splice(socketlist.indexOf(socket), 1);
-		if (client_index == -1)
-			console.log("Socket was not in active list when disconnecting: ", user_id);
+		if (client_index === -1)
+			console.log('Socket was not in active list when disconnecting: ', user_id);
 		socket.disconnect(0);
 	});
 
@@ -212,8 +266,8 @@ io.on('connection', function(socket) {
 	socket.on('disconnect', function(){
 		console.log('User disconnected (client closed)', user_id);
 		var client_index = socketlist.splice(socketlist.indexOf(socket), 1);
-		if (client_index == -1)
-			console.log("Socket was not in active list when disconnecting: ", user_id);
+		if (client_index === -1)
+			console.log('Socket was not in active list when disconnecting: ', user_id);
 		socket.disconnect(0);
 	});
 
@@ -251,19 +305,6 @@ io.on('connection', function(socket) {
 		eventcmd_extension(action);
 	});
 
-	// if only pianobar supported more events....
-	function eventcmd_extension (action) {
-		switch (action) {
-			case 'S' :
-				fs.closeSync(fs.openSync(pausePlayTouchFile, 'a')); // touch the pause file
-				break;
-			case 'P' :
-				// Do not care about errors (particularly file didn't exist)
-				fs.unlink(pausePlayTouchFile, (err) => {});
-				break;
-			}
-	}
-
 	socket.on('changeStation', function (data) {
 		console.log('User request:', data, user_id);
 		var stationId = data.stationId;
@@ -285,7 +326,7 @@ io.on('connection', function(socket) {
 		response.send(request.query);
 	});
 
-	app.post('/lovehate', function(request, response) {
+	app.post('/lovehate', function(request) {   // is there a need for f(request, response)
 		var rating = request.query.rating;
 		io.emit('lovehate', { rating: rating });
 	});
@@ -294,7 +335,7 @@ io.on('connection', function(socket) {
 
 function exitHandler(options, err) {
 	socketlist.forEach(function(socket) {
-		console.log("Exit - disconnecting: ", socket.user_id, socket.connected);
+		console.log('Exit - disconnecting: ', socket.user_id, socket.connected);
 		// we could attempt to send a message to the socket to let the clients know the server is offline
 		// we really don't want to send a disconnect if we expect the client to keep trying once we come up
 		// socket.disconnect(0); // sending this would cause clients to not attempt to reconnect
@@ -302,11 +343,18 @@ function exitHandler(options, err) {
 	});
 	socketlist =[]; // because exitHandler gets called twice - by the interupt, and then by the exit
 
-	if (options.cleanup) console.log('clean');
+	if (options.cleanup) {
+		ProcessCTL('patiobar-stopping');
+		io.close();
+		server.close();
+		console.log('clean');
+	}
+
+
 	if (err) console.log(err.stack);
 	if (options.exit) {
-		console.log("Caught interrupt signal");
-		process.exit();
+		console.log('Caught interrupt signal');
+		setTimeout(function() {process.exit();}, 5000);
 	}
 }
 
@@ -316,16 +364,15 @@ process.on('exit', exitHandler.bind(null,{cleanup:true}));
 	process.on(eventType, exitHandler.bind(null, {exit:true}));
 });
 ['SIGUSR2'].forEach((eventType) => { // allow nodemon to restart, rather than end process
-	process.on(eventType, exitHandler.bind(null, {exit:false}));
+	process.on(eventType, exitHandler.bind(null, {cleanup:true, exit:false}));
 });
 // audit info for connected clients
 process.on('SIGHUP', function() {
-	console.log("Connection Status (from HUP): ", io.sockets.sockets.length);
+	console.log('Connection Status (from HUP): ', io.sockets.sockets.length);
 	socketlist.forEach(function(socket) {
-		console.log(" status: ", socket.user_id, socket.connected);
+		console.log(' status: ', socket.user_id, socket.connected);
 	});
 });
 
-
-// this should be after all other code is in place
+// start the server after all other code is in place
 server.listen(listenPort);

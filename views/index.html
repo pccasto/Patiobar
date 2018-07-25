@@ -33,7 +33,8 @@
 		<div class="container" ng-controller="SongController">
 			<div id="player" class="center-block">
 				<div class="text-center">
-					<img class="center-block img-rounded img-responsive" id="coverArt" ng-src="{{src}}" alt="{{alt}}">
+					<img class="center-block img-rounded img-responsive" id="coverArt" ng-src="{{src}}" alt="{{alt}}" ng-class="{'hidden-controls': !pianobarRunning}">
+					<img class="center-block img-rounded img-responsive" id="powerOff" ng-src="/images/On_Off.png" alt="Patiobar is off" ng-class="{'hidden-controls': pianobarRunning }">>
 
 					<div id="details">
 						<p id="title" class="media-heading">{{title}}</p>
@@ -53,18 +54,25 @@
 			</div> <!-- End Player -->
 		</div> <!-- End container (SongController) -->
 
-		<nav class="navbar navbar-inverse" role="navigation" ng-controller="ProcessController">
-			<div class="container-fluid">
+		<nav class="navbar navbar-inverse" role="navigation" ng-controller="ProcessController" ng-class="{'hidden-controls': !patiobarRunning}">
+			<div class="container-fluid col-container">
 
-				<div class="container" ng-controller="ProcessController">
-						<div id="process">
-							<span>Music server control: </span>
+				<div class="container col-right">
+						<div id="patiobar-process" class="process">
+							<span>
 							<button id="process-start" type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('start')"> <span class="glyphicon glyphicon-play"></span> </button>
 							<button id="process-stop"  type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('stop')">	<span class="glyphicon glyphicon-stop"></span> </button>
+							</span>
+							<span>&nbsp;&nbsp;<= Pianobar Server Control&nbsp;</span>
 						</div>
-				</div> <!-- End container (Process Controller) -->
-			</div> <!-- End container-fluid -->
-		</nav>
+				</div>
+				<div class="container col">
+						<div id="system-process" class="process">
+							<span>Hardware Power, Caution! =>&nbsp;</span>
+							<button id="server-reboot"  type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('system-reboot')">	<span class="glyphicon glyphicon-refresh"></span> </button>
+							<button id="server-stop" type="button" class="btn btn-default navbar-btn btn-sm" ng-click="process('system-stop')"> <span class="glyphicon glyphicon-off"></span> </button>
+						</div>
+				</div> 		</nav> <!-- End container (Process Controller) -->
 
 
 		<script src="/socket.io/socket.io.js"></script>

@@ -9,8 +9,18 @@ body {
 .hidden-controls {
 	display: none;
 }
-.hidden-controlsx {
-	display: none;
+
+.col-container {
+    display: table; /* Make the container element behave like a table */
+    width: 100%; /* Set full-width to expand the whole page */
+}
+
+.col {
+    display: table-cell; /* Make elements inside the container behave like table cells */
+}
+.col-right {
+    display: table-cell; /* Make elements inside the container behave like table cells */
+    text-align: right;
 }
 
 #details {
@@ -41,7 +51,7 @@ body {
  margin-right: 1px;
 }
 
-#process {
+.process {
 	color: orange;
 	font-size:130%;
 }
