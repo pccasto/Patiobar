@@ -73,18 +73,18 @@ function clearFIFO() {
 		child_process.spawnSync('dd', ['if=', fifo , 'iflag=nonblock', 'of=/dev/null']);
 	}
 	catch (err) {
-		console.log('EAGAIN type errors happen often (resource not available): ' + err.message);
+		console.error('EAGAIN type errors happen often (resource not available): ' + err.message);
 	}
 }
 
 //function systemSync(cmd, verbose, quiet){
 //	return child_process.exec(cmd, (err, stdout, stderr) => {
-//	  console.log('should be quiet:', quiet);
+//	  console.info('should be quiet:', quiet);
 //		if (err) {
-//			console.log('Command | Error', cmd, err);
+//			console.error('Command | Error', cmd, err);
 //		}
-//	verbose && console.log('stdout is:' + stdout);
-//	verbose && console.log('stderr is:' + stderr);
+//	verbose && console.debug('stdout is:' + stdout);
+//	verbose && console.debug('stderr is:' + stderr);
 //	})
 //}
 
@@ -96,7 +96,7 @@ function PidoraCTL(action) {
 		if (fd) {
 			fs.close(fd);
 		}
-		console.log('Error opening fifo: ' + error);
+		console.error('Error opening fifo: ' + error);
 		return;
 		}
 
@@ -104,16 +104,16 @@ function PidoraCTL(action) {
 		fs.write(fd, buf, 0, action.length, null, function(error, written) {  // is there a need for f(error, written, buffer)
 			if (fd) {
 				fs.close(fd, function(err) {
-					if (err) console.log('Error closing fifo: ' + error);
+					if (err) console.error('Error closing fifo: ' + error);
 				});
 			}
 			if (error) {
-				console.log('Error writing to fifo: ' + error);
+				console.error('Error writing to fifo: ' + error);
 			} else {
 				if (written === action.length) {
-					console.log(action.trim('\n') + ' has been written successfully!');
+					console.info(action.trim('\n') + ' has been written successfully!');
 				} else {
-					console.log('Error: Only wrote ' + written + ' out of ' + action.length + ' bytes to fifo.');
+					console.error('Error: Only wrote ' + written + ' out of ' + action.length + ' bytes to fifo.');
 				}
 			}
 		});
@@ -127,10 +127,10 @@ function ProcessCTL(action) {
 	switch(action) {
 		case 'start':
 			if (isPianobarRunning()) {
-				console.log('Pianobar is already running');
+				console.info('Pianobar is already running');
 				return;
 			}
-			console.log('Starting Pianobar');
+			console.info('Starting Pianobar');
 			// pianobar starts in the running state, unless work is done to force it otherwise
 			// but wait for the first start message to change the playing from false to true
 			var songStatus = Object.assign(songTemplate, { title: 'Warming up', isplaying: false, isrunning: false});
@@ -144,7 +144,7 @@ function ProcessCTL(action) {
 				if (pb_start.status !== 0) throw pb_start.error;
 			}
 			catch(err) {
-				console.log(err);
+				console.error(err);
 				return;
 			}
 			break;
@@ -152,24 +152,24 @@ function ProcessCTL(action) {
 		case 'stop':
 			io.emit('stop', songTemplate);
 			if (!isPianobarRunning()) {
-				console.log('Pianobar is not running, so no need to stop');
+				console.info('Pianobar is not running, so no need to stop');
 				return;
 			}
-			console.log('Stopping Pianobar');
+			console.info('Stopping Pianobar');
 			//		try {
 			clearFIFO();
 			PidoraCTL('q');
-			fs.writeFile(process.env.HOME + '/.config/pianobar/currentSong', 'PIANOBAR_STOPPED,,,,', function (err) {
+			fs.writeFile(currentSongFile, 'PIANOBAR_STOPPED,,,,', function (err) {
 				if (err) {
-					console.log(err);
+					console.error(err);
 					return;
 				} else {
-					console.log('Stop entry made in currentSong file!');
+					console.info('Stop entry made in currentSong file!');
 				}
 			});
 			//		}
 			//		catch (err) {
-			//			console.log('Error in stopping Pianobar: ' + err.message);
+			//			console.error('Error in stopping Pianobar: ' + err.message);
 			//			return;
 			//		}
 			break;
@@ -177,19 +177,19 @@ function ProcessCTL(action) {
 		// try to inform clients when patiobar is shutting down
 		case 'patiobar-stopping':
 			io.emit('stop', songTemplate);
-			console.log('Stopping Patiobar');
+			console.info('Stopping Patiobar');
 			break;
 
 		case 'system-stop':
 			io.emit('stop', songTemplate);
-			console.log('Stopping System!');
+			console.warn('Stopping System!');
 			PidoraCTL('q');
-			fs.writeFile(process.env.HOME + '/.config/pianobar/currentSong', 'PIANOBAR_STOPPED,,,,', function (err) {
+			fs.writeFile(currentSongFile, 'PIANOBAR_STOPPED,,,,', function (err) {
 				if (err) {
-					console.log(err);
+					console.error(err);
 					return;
 				} else {
-					console.log('Stop entry made in currentSong file!');
+					console.info('Stop entry made in currentSong file!');
 				}
 			});
 			var system_stop = child_process.spawnSync(patiobarCtl, ['system-stop']);
@@ -198,14 +198,14 @@ function ProcessCTL(action) {
 
 		case 'system-reboot':
 			io.emit('stop', songTemplate);
-			console.log('Rebooting System!');
+			console.warn('Rebooting System!');
 			PidoraCTL('q');
-			fs.writeFile(process.env.HOME + '/.config/pianobar/currentSong', 'PIANOBAR_STOPPED,,,,', function (err) {
+			fs.writeFile(currentSongFile, 'PIANOBAR_STOPPED,,,,', function (err) {
 				if (err) {
-					console.log(err);
+					console.error(err);
 					return;
 				} else {
-					console.log('Stop entry made in currentSong file!');
+					console.info('Stop entry made in currentSong file!');
 				}
 			});
 			var system_reboot = child_process.spawnSync(patiobarCtl, ['system-reboot']);
@@ -213,7 +213,7 @@ function ProcessCTL(action) {
 			break;
 
 		default:
-			console.log('Unrecognized process action: ' + action);
+			console.warn('Unrecognized process action: ' + action);
 			break;
 	}
 }
@@ -249,14 +249,14 @@ io.on('connection', function(socket) {
 	socket.user_id = user_id;
 
 	socketlist.push(socket);
-	console.log('A user connected', user_id);
+	console.info('A user connected', user_id);
 
 	// disconnect seems to fire.  Not sure about close... TODO remove if needed.
 	socket.on('close', function () {
-		console.log('socket closed', user_id );
+		console.info('socket closed', user_id );
 		var client_index = socketlist.splice(socketlist.indexOf(socket), 1);
 		if (client_index === -1)
-			console.log('Socket was not in active list when disconnecting: ', user_id);
+			console.warn('Socket was not in active list when disconnecting: ', user_id);
 		socket.disconnect(0);
 	});
 
@@ -264,22 +264,22 @@ io.on('connection', function(socket) {
 	socket.emit('stations', readStations());
 
 	socket.on('disconnect', function(){
-		console.log('User disconnected (client closed)', user_id);
+		console.info('User disconnected (client closed)', user_id);
 		var client_index = socketlist.splice(socketlist.indexOf(socket), 1);
 		if (client_index === -1)
-			console.log('Socket was not in active list when disconnecting: ', user_id);
+			console.warn('Socket was not in active list when disconnecting: ', user_id);
 		socket.disconnect(0);
 	});
 
 	socket.on('process', function (data) {
-		console.log('User request:', data, user_id);
+		console.info('User request:', data, user_id);
 		var action = data.action;
 		ProcessCTL(action);
 	});
 
 	// nothing calls this yet, but planning ahead
 	socket.on('query', function (data) {
-		console.log('User request:', data, user_id);
+		console.info('User request:', data, user_id);
 		switch( data.query ) {
 			case 'currrentSong' :
 				socket.emit('query', readCurrentSong());
@@ -291,13 +291,13 @@ io.on('connection', function(socket) {
 				socket.emit('query', readStations());
 				break;
 			case '*' :
-				console.log('Unknown request');
+				console.warn('Unknown request');
 				break;
 			}
 	});
 
 	socket.on('action', function (data) {
-		console.log('User request:', data, user_id);
+		console.info('User request:', data, user_id);
 		var action = data.action.substring(0, 1);
 		// rebroadcast changes so all clients know the action was taken
 		io.emit('action', { action: action});
@@ -306,7 +306,7 @@ io.on('connection', function(socket) {
 	});
 
 	socket.on('changeStation', function (data) {
-		console.log('User request:', data, user_id);
+		console.info('User request:', data, user_id);
 		var stationId = data.stationId;
 		var cmd = 's' + stationId + '\n';
 		PidoraCTL(cmd);
@@ -335,7 +335,7 @@ io.on('connection', function(socket) {
 
 function exitHandler(options, err) {
 	socketlist.forEach(function(socket) {
-		console.log('Exit - disconnecting: ', socket.user_id, socket.connected);
+		console.warn('Exit - disconnecting: ', socket.user_id, socket.connected);
 		// we could attempt to send a message to the socket to let the clients know the server is offline
 		// we really don't want to send a disconnect if we expect the client to keep trying once we come up
 		// socket.disconnect(0); // sending this would cause clients to not attempt to reconnect
@@ -347,13 +347,13 @@ function exitHandler(options, err) {
 		ProcessCTL('patiobar-stopping');
 		io.close();
 		server.close();
-		console.log('clean');
+		console.info('clean');
 	}
 
 
-	if (err) console.log(err.stack);
+	if (err) console.warn(err.stack);
 	if (options.exit) {
-		console.log('Caught interrupt signal');
+		console.info('Caught interrupt signal');
 		setTimeout(function() {process.exit();}, 5000);
 	}
 }
@@ -368,9 +368,9 @@ process.on('exit', exitHandler.bind(null,{cleanup:true}));
 });
 // audit info for connected clients
 process.on('SIGHUP', function() {
-	console.log('Connection Status (from HUP): ', io.sockets.sockets.length);
+	console.info('Connection Status (from HUP): ', io.sockets.sockets.length);
 	socketlist.forEach(function(socket) {
-		console.log(' status: ', socket.user_id, socket.connected);
+		console.info(' status: ', socket.user_id, socket.connected);
 	});
 });
 
