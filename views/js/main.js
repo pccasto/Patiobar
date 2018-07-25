@@ -126,6 +126,7 @@ function StationController($scope, socket) {
 	socket.on('disconnect', function () {
 		console.log('station controller disconnecting');
 		$scope.pianobarRunning=false;
+		$scope.patiobarRunning=false;
 	});
 
 	$scope.changeStation = function(stationId) {
@@ -220,7 +221,8 @@ function SongController($scope, socket) {
 		console.log('song controller disconnecting');
 		$scope.title = 'DISCONNECTED from Patiobar Server!';
 		$scope.albumartist = '...Hopefully just a brief interuption...';
-		$scope.isPianobarRunning=null;
+		$scope.pianobarRunning=false;
+		$scope.patiobarRunning=false;
 	});
 
 	$scope.$on('$destroy', function () {  // is there any need to process f(event)
