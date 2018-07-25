@@ -2,10 +2,7 @@
 "use strict";
 
 // TODO - real logging framework...
-// TODO - log user_id of command senders
-
 // add timestamps in front of log messages
-//require('console-stamp')(console, '[HH:MM:ss.l]');
 require('console-stamp')(console, {
     metadata: function () {
         return ('[' + process.memoryUsage().rss + ']');
@@ -16,7 +13,6 @@ require('console-stamp')(console, {
         metadata: 'green'
     }
 });
-
 
 const
 	express = require('express'),
@@ -29,17 +25,15 @@ const
 	fifo = process.env.PIANOBAR_FIFO || 'ctl',
 	listenPort = process.env.PATIOBAR_PORT || 3000,
 
-	patiobarCtl	   = process.env.PIANOBAR_START	  || process.env.HOME + '/Patiobar/patiobar.sh',
-	pianobarStart  = process.env.PIANOBAR_START	  || process.env.HOME + '/Patiobar/patiobar.sh start',
-	pianobarStop   = process.env.PIANOBAR_STOP	  || process.env.HOME + '/Patiobar/patiobar.sh stop-pianobar',
-	pianobarStatus = process.env.PIANOBAR_STATUS  || process.env.HOME + '/Patiobar/patiobar.sh status-pianobar',
+	patiobarCtl    = process.env.PIANOBAR_START  || process.env.HOME + '/Patiobar/patiobar.sh',
+	pianobarStart  = process.env.PIANOBAR_START  || process.env.HOME + '/Patiobar/patiobar.sh start',
+	pianobarStop   = process.env.PIANOBAR_STOP   || process.env.HOME + '/Patiobar/patiobar.sh stop-pianobar',
+	pianobarStatus = process.env.PIANOBAR_STATUS || process.env.HOME + '/Patiobar/patiobar.sh status-pianobar',
 
 	pianobarOffImageURL = 'images/On_Off.png',
 
 	currentSongFile = process.env.HOME + '/.config/pianobar/currentSong',
 	pausePlayTouchFile = process.env.HOME + '/.config/pianobar/pause'; // perhaps this should move to ./config/patiobar/pause
-
-//app.use(express.static('views/images')); // might not need this if we reference the on_off.png differently
 
 // Routing
 app.use(express.static(__dirname + '/views'));
@@ -74,10 +68,9 @@ function readCurrentSong() {
 	}
 }
 
-function clearBuffer() {
+function clearFIFO() {
 	try {
 		child_process.spawnSync("dd", ["if=", fifo , "iflag=nonblock", "of=/dev/null"]);
-		//systemSync("dd if=" + fifo + " iflag=nonblock of=/dev/null", false, true)
 	}
 	catch (err) {
 		console.log('EAGAIN type errors happen often (resource not available): ' + err.message);
@@ -109,14 +102,13 @@ function ProcessCTL(action) {
 		// pianobar starts in the running state, unless work is done to force it otherwise
 		// but wait for the first start message to change the playing from false to true
 		var songStatus = Object.assign(songTemplate, { title: 'Warming up', isrunning: true});
-		// io.emit('start', songStatus);
 		//io.emit('start', {...songTemplate, ...{ title: 'Warming up', isrunning: true}});
 		io.emit('start', songStatus);
 
 
 		try {
 			// minimize any junk commands introduced while system was offline
-			clearBuffer();
+			clearFIFO();
 			if (!isPianobarPlaying()) PidoraCTL('S');  // if paused, stay paused after restart
 			var pb_start = child_process.spawnSync(patiobarCtl, ['start']);
 			if (pb_start.status != 0) throw pb_start.error;
@@ -135,7 +127,7 @@ function ProcessCTL(action) {
 		}
 		console.log('Stopping Pianobar');
 //		try {
-			clearBuffer();
+			clearFIFO();
 			PidoraCTL('q');
 			fs.writeFile(process.env.HOME + '/.config/pianobar/currentSong', 'PIANOBAR_STOPPED,,,,', function (err) {
 				if (err) {
@@ -159,7 +151,7 @@ function ProcessCTL(action) {
 }
 
 function PidoraCTL(action) {
-// this might be a blocking write, which is problematic if patiobar is not reading...
+	// this might be a blocking write, which is problematic if patiobar is not reading...
 	fs.open(fifo, 'w', '0644', function(error, fd) {
 		if (error) {
 		if (fd) {
@@ -190,7 +182,7 @@ function PidoraCTL(action) {
 }
 
 // TODO consider making this more responsive if add/rename station is added
-// todo consider making this a remembered global variable
+// TODO consider making this a remembered global variable
 function readStations() {
 	var list = fs.readFileSync(process.env.HOME + '/.config/pianobar/stationList').toString().split("\n");
 	return {'stations': list};
@@ -199,7 +191,7 @@ function readStations() {
 var socketlist = [];
 
 io.on('connection', function(socket) {
-	// remotePort is often Wrong (or at least was with old library) -- but
+	// remotePort is often Wrong (or at least seemed to be with old library)
 	var user_id = socket.request.connection.remoteAddress + ':' +socket.request.connection.remotePort + ' | ' + socket.id;
 	// make this value available in exit block, etc.
 	socket.user_id = user_id;
@@ -233,13 +225,14 @@ io.on('connection', function(socket) {
 		ProcessCTL(action);
 	});
 
+	// nothing calls this yet, but planning ahead
 	socket.on('query', function (data) {
 		console.log('User request:', data, user_id);
 		switch( data.query ) {
-		  case 'curSong' :
+		  case 'currrentSong' :
 		    socket.emit('query', readCurrentSong());
 		    break;
-		  case 'curStation' :
+		  case 'currentStation' :
 		    socket.emit('query', readCurrentSong());
 		    break;
 		  case 'allStations' :
@@ -249,13 +242,12 @@ io.on('connection', function(socket) {
 		    console.log('Unknown request');
 		    break;
 		  }
-
 	});
 
 	socket.on('action', function (data) {
 		console.log('User request:', data, user_id);
 		var action = data.action.substring(0, 1);
-		// rebroadcast changes - like 'pause' - but avoid circular - removed broadcast - circular is needed...
+		// rebroadcast changes so all clients know the action was taken
 		io.emit('action', { action: action});
 		PidoraCTL(action);
 		eventcmd_extension(action);
@@ -297,7 +289,6 @@ io.on('connection', function(socket) {
 
 	app.post('/lovehate', function(request, response) {
 		var rating = request.query.rating;
-
 		io.emit('lovehate', { rating: rating });
 	});
 
@@ -306,10 +297,10 @@ io.on('connection', function(socket) {
 function exitHandler(options, err) {
 	socketlist.forEach(function(socket) {
 		console.log("Exit - disconnecting: ", socket.user_id, socket.connected);
-		// so we really don't want to send a disconnect if we expect the client to keep trying once we come up
-		// let tcp cleanup happen naturally
-//		socket.disconnect(0);
-// we should send a message to the socket to let the clients know the server is offline
+		// we could attempt to send a message to the socket to let the clients know the server is offline
+		// we really don't want to send a disconnect if we expect the client to keep trying once we come up
+		// socket.disconnect(0); // sending this would cause clients to not attempt to reconnect
+		// so let tcp cleanup happen naturally from the client side
 	});
 	socketlist =[]; // because exitHandler gets called twice - by the interupt, and then by the exit
 
@@ -323,11 +314,14 @@ function exitHandler(options, err) {
 
 process.on('exit', exitHandler.bind(null,{cleanup:true}));
 
-[`SIGINT`, `SIGUSR1`, `SIGUSR2`, `uncaughtException`, `SIGTERM`].forEach((eventType) => {
+['SIGINT', 'SIGUSR1', 'uncaughtException', 'SIGTERM'].forEach((eventType) => {
   process.on(eventType, exitHandler.bind(null, {exit:true}));
 });
-
-process.on(`SIGHUP`, function() {
+['SIGUSR2'].forEach((eventType) => { // allow nodemon to restart, rather than end process
+  process.on(eventType, exitHandler.bind(null, {exit:false}));
+});
+// audit info for connected clients
+process.on('SIGHUP', function() {
 	console.log("Connection Status (from HUP): ", io.sockets.sockets.length);
 	socketlist.forEach(function(socket) {
 		console.log("	 status: ", socket.user_id, socket.connected);
