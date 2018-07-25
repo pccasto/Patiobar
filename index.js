@@ -4,14 +4,14 @@
 // TODO - real logging framework...
 // add timestamps in front of log messages
 require('console-stamp')(console, {
-    metadata: function () {
-        return ('[' + process.memoryUsage().rss + ']');
-    },
-    colors: {
-        stamp: 'yellow',
-        label: 'white',
-        metadata: 'green'
-    }
+	metadata: function () {
+		return ('[' + process.memoryUsage().rss + ']');
+	},
+	colors: {
+		stamp: 'yellow',
+		label: 'white',
+		metadata: 'green'
+	}
 });
 
 const
@@ -45,26 +45,25 @@ function isPianobarPlaying() {
 // need to use a command to really check
 function isPianobarRunning() {
 	var pb_status = child_process.spawnSync(patiobarCtl, ['status-pianobar']);
-	return pb_status.status == 0 ?	true : false;
+	return pb_status.status == 0 ? true : false;
 }
 
 function readCurrentSong() {
 	var currentSong = fs.readFileSync(currentSongFile).toString();
 	var songTemplate = { artist: '', title: '', album: '',
-					coverArt: pianobarOffImageURL, rating: '',
-					stationName: '', isplaying: false, isrunning: false };
+		coverArt: pianobarOffImageURL, rating: '',
+		stationName: '', isplaying: false, isrunning: false };
 
 	if (currentSong) {
-	   var a = currentSong.split(',,,');
-	   if (a[0] == "PIANOBAR_STOPPED") {
+		var a = currentSong.split(',,,');
+			if (a[0] == "PIANOBAR_STOPPED") {
 		 return (songTemplate);
-	   } else {
-		  return ({ artist: a[0], title: a[1], album: a[2], coverArt: a[3], rating: a[4], stationName: a[5], isplaying: isPianobarPlaying() , isrunning: isPianobarRunning()});
-
-	   }
+		} else {
+			return ({ artist: a[0], title: a[1], album: a[2], coverArt: a[3], rating: a[4], stationName: a[5], isplaying: isPianobarPlaying() , isrunning: isPianobarRunning()});
+		}
 	} else {
-	   console.error('No current song file');
-	    return(songTemplate);
+		console.error('No current song file');
+		return(songTemplate);
 	}
 }
 
@@ -90,42 +89,41 @@ function clearFIFO() {
 
 function ProcessCTL(action) {
 	var songTemplate = { artist: '', title: '', album: '',
-					coverArt: pianobarOffImageURL, rating: '',
-					stationName: '', isplaying: false, isrunning: false };
+			coverArt: pianobarOffImageURL, rating: '',
+			stationName: '', isplaying: false, isrunning: false };
 	switch(action) {
-	  case 'start':
-		if (isPianobarRunning()) {
-			console.log("Pianobar is already running");
-			return;
-		}
-		console.log('Starting Pianobar');
-		// pianobar starts in the running state, unless work is done to force it otherwise
-		// but wait for the first start message to change the playing from false to true
-		var songStatus = Object.assign(songTemplate, { title: 'Warming up', isrunning: true});
-		//io.emit('start', {...songTemplate, ...{ title: 'Warming up', isrunning: true}});
-		io.emit('start', songStatus);
+		case 'start':
+			if (isPianobarRunning()) {
+				console.log("Pianobar is already running");
+				return;
+			}
+			console.log('Starting Pianobar');
+			// pianobar starts in the running state, unless work is done to force it otherwise
+			// but wait for the first start message to change the playing from false to true
+			var songStatus = Object.assign(songTemplate, { title: 'Warming up', isrunning: true});
+			//io.emit('start', {...songTemplate, ...{ title: 'Warming up', isrunning: true}});
+			io.emit('start', songStatus);
 
-
-		try {
-			// minimize any junk commands introduced while system was offline
-			clearFIFO();
-			if (!isPianobarPlaying()) PidoraCTL('S');  // if paused, stay paused after restart
-			var pb_start = child_process.spawnSync(patiobarCtl, ['start']);
-			if (pb_start.status != 0) throw pb_start.error;
-		}
-		catch(err) {
-			console.log(err);
-			return;
-		}
-		break;
+			try {
+				// minimize any junk commands introduced while system was offline
+				clearFIFO();
+				if (!isPianobarPlaying()) PidoraCTL('S');  // if paused, stay paused after restart
+				var pb_start = child_process.spawnSync(patiobarCtl, ['start']);
+				if (pb_start.status != 0) throw pb_start.error;
+			}
+			catch(err) {
+				console.log(err);
+				return;
+			}
+			break;
 
 	  case 'stop':
-		io.emit('stop', songTemplate);
-		if (!isPianobarRunning()) {
-			console.log("Pianobar is not running, so no need to stop");
-			return;
-		}
-		console.log('Stopping Pianobar');
+			io.emit('stop', songTemplate);
+			if (!isPianobarRunning()) {
+				console.log("Pianobar is not running, so no need to stop");
+				return;
+			}
+			console.log('Stopping Pianobar');
 //		try {
 			clearFIFO();
 			PidoraCTL('q');
@@ -142,11 +140,11 @@ function ProcessCTL(action) {
 //			console.log('Error in stopping Pianobar: ' + err.message);
 //			return;
 //		}
-		break;
+			break;
 
 	  default:
-		console.log('Unrecognized process action: ' + action);
-		break;
+			console.log('Unrecognized process action: ' + action);
+			break;
 	}
 }
 
@@ -201,7 +199,7 @@ io.on('connection', function(socket) {
 
 	// disconnect seems to fire.  Not sure about close... TODO remove if needed.
 	socket.on('close', function () {
-	  console.log('socket closed', user_id );
+		console.log('socket closed', user_id );
 		var client_index = socketlist.splice(socketlist.indexOf(socket), 1);
 		if (client_index == -1)
 			console.log("Socket was not in active list when disconnecting: ", user_id);
@@ -229,19 +227,19 @@ io.on('connection', function(socket) {
 	socket.on('query', function (data) {
 		console.log('User request:', data, user_id);
 		switch( data.query ) {
-		  case 'currrentSong' :
-		    socket.emit('query', readCurrentSong());
-		    break;
-		  case 'currentStation' :
-		    socket.emit('query', readCurrentSong());
-		    break;
-		  case 'allStations' :
-		    socket.emit('query', readStations());
-		    break;
-		  case '*' :
-		    console.log('Unknown request');
-		    break;
-		  }
+			case 'currrentSong' :
+				socket.emit('query', readCurrentSong());
+				break;
+			case 'currentStation' :
+				socket.emit('query', readCurrentSong());
+				break;
+			case 'allStations' :
+				socket.emit('query', readStations());
+				break;
+			case '*' :
+				console.log('Unknown request');
+				break;
+			}
 	});
 
 	socket.on('action', function (data) {
@@ -315,16 +313,16 @@ function exitHandler(options, err) {
 process.on('exit', exitHandler.bind(null,{cleanup:true}));
 
 ['SIGINT', 'SIGUSR1', 'uncaughtException', 'SIGTERM'].forEach((eventType) => {
-  process.on(eventType, exitHandler.bind(null, {exit:true}));
+	process.on(eventType, exitHandler.bind(null, {exit:true}));
 });
 ['SIGUSR2'].forEach((eventType) => { // allow nodemon to restart, rather than end process
-  process.on(eventType, exitHandler.bind(null, {exit:false}));
+	process.on(eventType, exitHandler.bind(null, {exit:false}));
 });
 // audit info for connected clients
 process.on('SIGHUP', function() {
 	console.log("Connection Status (from HUP): ", io.sockets.sockets.length);
 	socketlist.forEach(function(socket) {
-		console.log("	 status: ", socket.user_id, socket.connected);
+		console.log(" status: ", socket.user_id, socket.connected);
 	});
 });
 
